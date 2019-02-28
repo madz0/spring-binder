@@ -3,11 +3,7 @@ package com.github.madzo.springbinder.model;
 import java.util.List;
 import java.util.Set;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
+import javax.persistence.*;
 
 import ir.iiscenter.springform.validation.ValidationError;
 import lombok.Getter;
@@ -21,10 +17,10 @@ public class Employee extends BaseModel {
 	@Column
 	private String name;
 	
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	private Company company;
 	
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	private House house;
 	
 	@OneToMany(cascade=CascadeType.ALL, mappedBy="employee")

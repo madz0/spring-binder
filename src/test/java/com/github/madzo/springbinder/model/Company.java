@@ -4,11 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
+import javax.persistence.*;
 
 import ir.iiscenter.springform.bind.property.IProperty;
 import ir.iiscenter.springform.model.BaseGroups;
@@ -35,7 +31,7 @@ public class Company extends BaseModel {
     @Column
     private String name;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private City city;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "company")

@@ -7,6 +7,7 @@ import ognl.extended.DefaultMemberAccess;
 import ognl.extended.DefaultObjectConstructor;
 import ognl.extended.MapNode;
 import ognl.extended.OgnlPropertyDescriptor;
+import org.hibernate.proxy.HibernateProxy;
 import org.springframework.util.StringUtils;
 
 import javax.persistence.*;
@@ -72,10 +73,11 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                                 context.addObjectConstructor(this);
                                 Object obj = null;
                                 if (model.isPresent()) {
-                                    obj = model;
+                                    obj = model.get();
                                 } else {
                                     try {
                                         obj = OgnlRuntime.createProperObject(context, genericClazz, genericClazz.getComponentType(), node);
+                                        OgnlRuntime.setProperty(context, obj, root.getClass().getSimpleName().toLowerCase(), root);
                                         dest.add(obj);
                                     } catch (Exception e) {
                                         log.error("", e);
@@ -121,6 +123,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                                 if (model == null) {
                                     try {
                                         obj = OgnlRuntime.createProperObject(context, genericClazz, genericClazz.getComponentType(), node);
+                                        OgnlRuntime.setProperty(context, obj, root.getClass().getSimpleName().toLowerCase(), root);
                                         dest.put(key, obj);
                                     } catch (Exception e) {
                                         log.error("", e);
@@ -138,12 +141,21 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                     }
                 }
             } else if (propertyDescriptor.getAnnotation(ManyToOne.class) != null) {
+                if(propertyObject instanceof HibernateProxy) {
+                    return propertyObject;
+                }
+
                 Object id = getId(node);
-                Object fieldValue;
+                Object fieldValue = propertyObject;
                 if (id == null) {
                     fieldValue = null;
                 } else {
-                    fieldValue = entityManager.getReference(propertyObject.getClass(), id);
+                    try {
+                        fieldValue = entityManager.getReference(propertyObject.getClass(), id);
+                    }
+                    catch(Exception e) {
+                        log.warn(e.getMessage());
+                    }
                 }
                 return fieldValue;
             } else if (propertyDescriptor.getAnnotation(OneToOne.class) != null) {

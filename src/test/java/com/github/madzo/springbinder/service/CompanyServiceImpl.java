@@ -33,4 +33,10 @@ public class CompanyServiceImpl implements CompanyService {
 	public Object list() {
 		return new RestResult(companyRepository.findAll(), HttpStatus.OK, null);
 	}
+
+	public Object update(@Valid @FormObject(entityGraph = {"employees",
+			"city", "employees.cars", "employees.cars.manufacture"}) Company company) {
+		companyRepository.save(company);
+		return new RestResult(null, HttpStatus.OK, null);
+	}
 }

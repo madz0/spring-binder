@@ -1,10 +1,12 @@
 package com.github.madzo.springbinder.model;
 
 import java.sql.Date;
+import java.sql.Time;
 import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
 
 import ir.iiscenter.springform.validation.ValidationError;
@@ -22,8 +24,10 @@ public class Car extends BaseModel {
     Date date;
     @Column
     Boolean hasSold;
+    @Column
+    Time time;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     CarManufacture manufacture;
 
     @ManyToOne
