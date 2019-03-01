@@ -1,0 +1,23 @@
+curl -H "Content-Type: application/json" -X POST http://localhost:8080/company/create -d '{
+"name":"MyCompany",
+"city":{
+ "id":"1"
+},
+"employees": [{
+ "name":"Mohamad",
+ "house":{
+  "id":"1"
+ },
+ "cars":[{
+  "model":"Benz clo",
+  "date":"2018-07-29",
+  "manufacture":{
+   "id":"1"
+  }}]
+}]}'
+
+
+curl http://localhost:8080/company/create -H "Content-Type: application/json" -X POST -d 'company.name=admin&company.city.id=1&company.employees[0].name=Mohamad&company.employees[0].house.id=1&company.employees[0].cars[0].model=Benz clo&company.employees[0].cars[0].date=2018-07-29&company.employees[0].cars[0].time=10:11:11&company.employees[0].cars[0].manufacture.id=1'
+
+
+curl http://localhost:8080/company/update -H "Content-Type: application/json" -X POST -d 'company.id=1&company.name=admin2&company.city.id=1&company.employees[0].id=1&company.employees[0].name=Mohamad3&company.employees[0].house.id=1&company.employees[0].cars[0].id=1&company.employees[0].cars[0].model=Benz clo&company.employees[0].cars[0].date=2018-07-29&company.employees[0].cars[0].time=10:11:11&company.employees[0].cars[0].manufacture.id=1'

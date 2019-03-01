@@ -45,13 +45,20 @@
             <artifactId>commons-lang3</artifactId>
             <version>3.8.1</version>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>com.github.madz0</groupId>-->
-            <!--<artifactId>eognl</artifactId>-->
-            <!--<version>0.0.2-RELEASE</version>-->
-            <!--<scope>system</scope>-->
-            <!--<systemPath>${project.basedir}/src/main/resources/eognl-0.0.2-RELEASE.jar</systemPath>-->
-        <!--</dependency>-->
+        <dependency>
+            <groupId>ir.iiscenter</groupId>
+            <artifactId>spring-form</artifactId>
+            <version>0.0.66-RELEASE</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/src/main/resources/spring-form-0.0.66-RELEASE.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ognl</groupId>
+            <artifactId>ognl</artifactId>
+            <version>3.2.12-ext-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/src/main/resources/ognl-3.2.12-ext-SNAPSHOT.jar</systemPath>
+        </dependency>
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
