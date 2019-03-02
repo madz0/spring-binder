@@ -8,6 +8,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
+import javax.validation.constraints.NotNull;
 
 import ir.iiscenter.springform.validation.ValidationError;
 import lombok.Getter;
@@ -25,6 +26,7 @@ public class Car extends BaseModel {
     @Column
     Boolean hasSold;
     @Column
+    @NotNull
     Time time;
 
     @ManyToOne(fetch = FetchType.EAGER)

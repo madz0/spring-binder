@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 
 import javax.persistence.*;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
 import ir.iiscenter.springform.bind.property.IProperty;
 import ir.iiscenter.springform.model.BaseGroups;
@@ -29,11 +31,13 @@ public class Company extends BaseModel {
     }
 
     @Column
+    @NotNull
     private String name;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private City city;
 
+    @Valid
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "company")
     private Set<Employee> employees;
 

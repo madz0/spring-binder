@@ -55,9 +55,9 @@
         <dependency>
             <groupId>ognl</groupId>
             <artifactId>ognl</artifactId>
-            <version>3.2.12-ext-SNAPSHOT</version>
+            <version>3.2.14-ext-SNAPSHOT</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/ognl-3.2.12-ext-SNAPSHOT.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/resources/ognl-3.2.14-ext-SNAPSHOT.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>mysql</groupId>

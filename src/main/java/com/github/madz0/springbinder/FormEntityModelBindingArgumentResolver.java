@@ -9,9 +9,18 @@ import ognl.OgnlRuntime;
 import ognl.extended.DefaultMemberAccess;
 import ognl.extended.OgnlPropertyDescriptor;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.Errors;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.bind.support.WebRequestDataBinder;
 import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.annotation.ModelFactory;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 import javax.persistence.EntityGraph;
@@ -19,18 +28,18 @@ import javax.persistence.EntityManager;
 import javax.persistence.Id;
 import javax.persistence.Subgraph;
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
 import java.beans.IntrospectionException;
 import java.io.BufferedReader;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.URLDecoder;
 import java.util.*;
 import java.util.stream.Stream;
 
-public class FormEntityModelBindingArgumentResolver implements HandlerMethodArgumentResolver {
+public class FormEntityModelBindingArgumentResolver implements HandlerMethodArgumentResolver, HandlerMethodReturnValueHandler {
     private Class<Serializable> idClazz;
     private EntityManager em;
 
@@ -47,7 +56,6 @@ public class FormEntityModelBindingArgumentResolver implements HandlerMethodArgu
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
         StringBuilder builder = new StringBuilder();
-        Object value = null;
         try (BufferedReader br = request.getReader()) {
             char[] readBytes = new char[1024];
             int readSize;
@@ -55,7 +63,16 @@ public class FormEntityModelBindingArgumentResolver implements HandlerMethodArgu
                 builder.append(new String(readBytes, 0, readSize));
             }
         }
-        if (builder.length() > 0) {
+        String name = parameter.getParameterName();
+        BindingResult bindingResult = null;
+        Object value = null;
+        WebDataBinder binder = null;
+        if (mavContainer.containsAttribute(name)) {
+            value = mavContainer.getModel().get(name);
+        }
+
+        if (value == null && builder.length() > 0) {
+            mavContainer.setBinding(parameter.getParameterName(), true);
             Type type = parameter.getParameterType();
             OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
             Class cls = null;
@@ -69,19 +86,45 @@ public class FormEntityModelBindingArgumentResolver implements HandlerMethodArgu
                 }
             } else {
                 cls = (Class) type;
-                checkIdClazz(cls);
+                if(idClazz == null) {
+                    checkIdClazz(cls);
+                }
                 context.extend();
             }
             context.addObjectConstructor(new EntityModelObjectConstructor<>(em, idClazz,
                     createEntityGraph(cls, parameter.getParameterAnnotation(FormObject.class).entityGraph())));
             builder.insert(0, '?');
             Map<String, List<String>> params = parsQuery(builder.toString());
-            value = Ognl.getValue(params.get(parameter.getParameterName()), context, cls);
+            value = Ognl.getValue(params.get(name), context, cls);
+            if (parameter.hasParameterAnnotation(Validated.class)) {
+                binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
+                binder.validate();
+                bindingResult = binder.getBindingResult();
+            }
         }
 
-        if (parameter.hasParameterAnnotation(Valid.class)) {
-            binderFactory.createBinder(webRequest, value, parameter.getParameterName()).validate();
+        if(bindingResult == null) {
+            binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
+            bindRequestParameters(binder, webRequest);
+            if (binder.getTarget() != null) {
+                if (!mavContainer.isBindingDisabled(name)) {
+                    bindRequestParameters(binder, webRequest);
+                }
+                validateIfApplicable(binder, parameter);
+                if (binder.getBindingResult().hasErrors() && isBindExceptionRequired(binder, parameter)) {
+                    throw new BindException(binder.getBindingResult());
+                }
+            }
+            if (!parameter.getParameterType().isInstance(value)) {
+                value = binder.convertIfNecessary(binder.getTarget(), parameter.getParameterType(), parameter);
+            }
+            bindingResult = binder.getBindingResult();
         }
+
+        Map<String, Object> bindingResultModel = bindingResult.getModel();
+        mavContainer.removeAttributes(bindingResultModel);
+        mavContainer.addAllAttributes(bindingResultModel);
+
         return value;
     }
 
@@ -158,5 +201,50 @@ public class FormEntityModelBindingArgumentResolver implements HandlerMethodArgu
                 root = root.addSubgraph(splitted[i]);
         });
         return graph;
+    }
+
+    @Override
+    public boolean supportsReturnType(MethodParameter returnType) {
+        return true;
+    }
+
+    @Override
+    public void handleReturnValue(Object returnValue, MethodParameter returnType, ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws Exception {
+        if (returnValue != null) {
+            String name = ModelFactory.getNameForReturnValue(returnValue, returnType);
+            mavContainer.addAttribute(name, returnValue);
+        }
+    }
+
+    protected boolean isBindExceptionRequired(MethodParameter parameter) {
+        int i = parameter.getParameterIndex();
+        Class<?>[] paramTypes = parameter.getExecutable().getParameterTypes();
+        boolean hasBindingResult = (paramTypes.length > (i + 1) && Errors.class.isAssignableFrom(paramTypes[i + 1]));
+        return !hasBindingResult;
+    }
+
+    protected boolean isBindExceptionRequired(WebDataBinder binder, MethodParameter parameter) {
+        return isBindExceptionRequired(parameter);
+    }
+
+    protected void bindRequestParameters(WebDataBinder binder, NativeWebRequest request) {
+        ((WebRequestDataBinder) binder).bind(request);
+    }
+
+    protected void validateIfApplicable(WebDataBinder binder, MethodParameter parameter) {
+        for (Annotation ann : parameter.getParameterAnnotations()) {
+            Validated validatedAnn = AnnotationUtils.getAnnotation(ann, Validated.class);
+            if (validatedAnn != null || ann.annotationType().getSimpleName().startsWith("Valid")) {
+                Object hints = (validatedAnn != null ? validatedAnn.value() : AnnotationUtils.getValue(ann));
+                if (hints != null) {
+                    Object[] validationHints = (hints instanceof Object[] ? (Object[]) hints : new Object[] {hints});
+                    binder.validate(validationHints);
+                }
+                else {
+                    binder.validate();
+                }
+                break;
+            }
+        }
     }
 }
