@@ -1,6 +1,6 @@
 package com.github.madzo.springbinder;
 
-import com.github.madz0.springbinder.FormEntityModelBindingArgumentResolver;
+import com.github.madz0.springbinder.binding.form.FormEntityAbstractModelBindingArgumentResolver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -22,6 +22,6 @@ public class App implements WebMvcConfigurer {
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(new FormEntityModelBindingArgumentResolver(entityManager));
+        resolvers.add(new FormEntityAbstractModelBindingArgumentResolver(entityManager));
     }
 }

@@ -1,12 +1,14 @@
-package com.github.madz0.springbinder;
+package com.github.madz0.springbinder.binding.form;
 
-import ir.iiscenter.springform.model.IBaseModel;
+import com.github.madz0.springbinder.binding.BindUtils;
+import com.github.madz0.springbinder.binding.property.FieldProperty;
+import com.github.madz0.springbinder.binding.property.IModelProperty;
+import com.github.madz0.springbinder.binding.property.IProperty;
+import com.github.madz0.springbinder.model.BaseGroups;
+import com.github.madz0.springbinder.model.IBaseModel;
 import lombok.extern.slf4j.Slf4j;
 import ognl.*;
-import ognl.extended.DefaultMemberAccess;
-import ognl.extended.DefaultObjectConstructor;
-import ognl.extended.MapNode;
-import ognl.extended.OgnlPropertyDescriptor;
+import ognl.extended.*;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.util.StringUtils;
 
@@ -14,6 +16,7 @@ import javax.persistence.*;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.Callable;
 
 @Slf4j
 public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
@@ -21,11 +24,17 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
     EntityManager entityManager;
     Class<ID> idClass;
     EntityGraph<?> graph;
+    //private Set<IProperty> iGroupSet = null;
+    private Stack<Set<IProperty>> groupStack = new Stack<>();
 
-    public EntityModelObjectConstructor(EntityManager entityManager, Class<ID> idClass, EntityGraph<?> graph) {
+    public EntityModelObjectConstructor(EntityManager entityManager, Class<ID> idClass,
+                                        EntityGraph<?> graph, Class<BaseGroups.IGroup> group) {
         this.entityManager = entityManager;
         this.idClass = idClass;
         this.graph = graph;
+        if (group != BaseGroups.IGroup.class) {
+            groupStack.push(BindUtils.getPropertiesFromGroup(group));
+        }
     }
 
     @Override
@@ -44,9 +53,18 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
     }
 
     @Override
-    public Object processObject(OgnlContext context, Object root, OgnlPropertyDescriptor propertyDescriptor,
-                                Object propertyObject, MapNode node) {
+    public Object processObjectForGet(OgnlContext context, Object root, OgnlPropertyDescriptor propertyDescriptor,
+                                      Object propertyObject, MapNode node) {
+        IProperty currentProp = null;
+        if (!groupStack.isEmpty()) {
+            currentProp = getIProperty(groupStack.peek(), propertyDescriptor.getPropertyName());
+            if (currentProp == null) {
+                return propertyObject;
+            }
+        }
+
         if (propertyDescriptor != null && root instanceof IBaseModel && idClass != null) {
+
             if (node.isCollection()) {
                 Type genericType = propertyDescriptor.getReadMethod().getGenericReturnType();
                 ParameterizedType parameterizedType = (ParameterizedType) genericType; //If not let it throws exception
@@ -68,26 +86,41 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                                 Optional model = dest.stream()
                                         .filter(x -> matchId(collectionNode, x))
                                         .findAny();
-                                context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
-                                context.extend();
-                                context.addObjectConstructor(this);
+                                final OgnlContext contextFinal = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+                                contextFinal.extend();
+                                contextFinal.setObjectConstructor(this);
                                 Object obj = null;
                                 if (model.isPresent()) {
                                     obj = model.get();
                                 } else {
                                     try {
-                                        obj = OgnlRuntime.createProperObject(context, genericClazz, genericClazz.getComponentType(), node);
-                                        OgnlRuntime.setProperty(context, obj, root.getClass().getSimpleName().toLowerCase(), root);
+                                        Object finalObj = obj = OgnlRuntime.createProperObject(contextFinal, genericClazz, genericClazz.getComponentType(), node);
+                                        pushPopPropFields(Collections.singleton(FieldProperty.of(root.getClass().getSimpleName().toLowerCase())), ()-> {
+                                            try {
+                                                OgnlRuntime.setProperty(contextFinal, finalObj, root.getClass().getSimpleName().toLowerCase(), root);
+                                            } catch (Exception e) {
+                                                log.error("", e);
+                                            }
+                                            finally {
+                                                return null;
+                                            }
+                                        });
                                         dest.add(obj);
                                     } catch (Exception e) {
                                         log.error("", e);
                                     }
                                 }
-                                try {
-                                    Ognl.getValue(collectionNode, context, obj);
-                                } catch (OgnlException e) {
-                                    log.error("", e);
-                                }
+                                final Object finalObj = obj;
+                                pushPopPropFields((IModelProperty) currentProp, () -> {
+                                    try {
+                                        Ognl.getValue(collectionNode, contextFinal, finalObj);
+                                    } catch (OgnlException e) {
+                                        log.error("", e);
+                                    }
+                                    finally {
+                                        return null;
+                                    }
+                                });
                             }
                         } else if (propertyDescriptor.getAnnotation(ManyToMany.class) != null) {
                             dest.clear();
@@ -117,23 +150,30 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                                 String key = collectionNode.getName().substring(1, collectionNode.getName().length() - 1);
                                 Object model = dest.get(key);
                                 Object obj = model;
-                                context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
-                                context.extend();
-                                context.addObjectConstructor(this);
+                                OgnlContext contextFinal = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+                                contextFinal.extend();
+                                contextFinal.setObjectConstructor(this);
                                 if (model == null) {
                                     try {
-                                        obj = OgnlRuntime.createProperObject(context, genericClazz, genericClazz.getComponentType(), node);
-                                        OgnlRuntime.setProperty(context, obj, root.getClass().getSimpleName().toLowerCase(), root);
+                                        obj = OgnlRuntime.createProperObject(contextFinal, genericClazz, genericClazz.getComponentType(), node);
+                                        OgnlRuntime.setProperty(contextFinal, obj, root.getClass().getSimpleName().toLowerCase(), root);
                                         dest.put(key, obj);
                                     } catch (Exception e) {
                                         log.error("", e);
                                     }
                                 }
-                                try {
-                                    Ognl.getValue(collectionNode, context, obj);
-                                } catch (OgnlException e) {
-                                    log.error("", e);
-                                }
+                                final Object finalObj = obj;
+                                pushPopPropFields((IModelProperty) currentProp, () -> {
+                                    try {
+                                        Ognl.getValue(collectionNode, contextFinal, finalObj);
+                                    } catch (OgnlException e) {
+                                        log.error("", e);
+                                    }
+                                    finally {
+                                        return null;
+                                    }
+                                });
+
                             }
                         } else {
                             throw new IllegalStateException("Map field must be OneToMany");
@@ -141,7 +181,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                     }
                 }
             } else if (propertyDescriptor.getAnnotation(ManyToOne.class) != null) {
-                if(propertyObject instanceof HibernateProxy) {
+                if (propertyObject instanceof HibernateProxy) {
                     return propertyObject;
                 }
 
@@ -152,8 +192,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                 } else {
                     try {
                         fieldValue = entityManager.getReference(propertyObject.getClass(), id);
-                    }
-                    catch(Exception e) {
+                    } catch (Exception e) {
                         log.warn(e.getMessage());
                     }
                 }
@@ -171,29 +210,53 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                     }
                     return fieldValue;
                 } else {
-                    context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
-                    context.extend();
-                    context.addObjectConstructor(this);
+                    OgnlContext contextFinal = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+                    contextFinal.extend();
+                    contextFinal.setObjectConstructor(this);
+                    final Object finalObj = propertyObject;
+                    pushPopPropFields((IModelProperty) currentProp, () -> {
+                        try {
+                            Ognl.getValue(node, contextFinal, finalObj);
+                        } catch (OgnlException e) {
+                            log.error("", e);
+                        }
+                        finally {
+                            return null;
+                        }
+                    });
+                }
+            } else {
+                OgnlContext contextFinal = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+                contextFinal.extend();
+                contextFinal.setObjectConstructor(this);
+                final Object finalObj = propertyObject;
+                pushPopPropFields((IModelProperty) currentProp, () -> {
                     try {
-                        Ognl.getValue(node, context, propertyObject);
+                        Ognl.getValue(node, contextFinal, finalObj);
                     } catch (OgnlException e) {
                         log.error("", e);
                     }
-                }
-            } else {
-                context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
-                context.extend();
-                context.addObjectConstructor(this);
-                try {
-                    Ognl.getValue(node, context, propertyObject);
-                } catch (OgnlException e) {
-                    log.error("", e);
-                }
+                    finally {
+                        return null;
+                    }
+                });
             }
             return propertyObject;
         }
 
-        return super.processObject(context, root, propertyDescriptor, propertyObject, node);
+        return pushPopPropFields(currentProp, ()->super.processObjectForGet(context, root, propertyDescriptor, propertyObject, node));
+    }
+
+    @Override
+    public Object processObjectForSet(OgnlContext context, Object root, OgnlPropertyDescriptor propertyDescriptor, Object propertyObject, MapNode node) throws PropertySetIgnoreException {
+        if (!groupStack.isEmpty()) {
+            IProperty currentProp = getIProperty(groupStack.peek(), propertyDescriptor.getPropertyName());
+            if (currentProp == null) {
+                throw new PropertySetIgnoreException();
+            }
+        }
+
+        return super.processObjectForSet(context, root, propertyDescriptor, propertyObject, node);
     }
 
     private boolean matchId(MapNode node, Object model) {
@@ -212,5 +275,40 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
             }
         }
         return null;
+    }
+
+    private IProperty getIProperty(Set<IProperty> iProperties, String propName) {
+        if (iProperties != null) {
+            for (IProperty property : iProperties) {
+                if (property.getName().equals(propName)) {
+                    return property;
+                }
+            }
+        }
+        return null;
+    }
+
+    private <T> T pushPopPropFields(IProperty prop, Callable<T> r) {
+        if (prop != null) {
+            return pushPopPropFields(prop instanceof IModelProperty?
+                    ((IModelProperty)prop).getFields(): Collections.singleton(prop), r);
+        } else {
+            try {
+                return r.call();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+    }
+
+    private <T> T pushPopPropFields(Set<IProperty> propertySet, Callable<T> r) {
+        try {
+            groupStack.push(propertySet);
+            return r.call();
+        } catch (Exception e) {
+            return null;
+        } finally {
+            groupStack.pop();
+        }
     }
 }

@@ -52,17 +52,33 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/src/main/resources/spring-form-0.0.66-RELEASE.jar</systemPath>
         </dependency>
-        <dependency>
+        <!--<dependency>
             <groupId>ognl</groupId>
             <artifactId>ognl</artifactId>
             <version>3.2.14-ext-SNAPSHOT</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/src/main/resources/ognl-3.2.14-ext-SNAPSHOT.jar</systemPath>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.cosium.spring.data</groupId>
+            <artifactId>spring-data-jpa-entity-graph</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.3</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
     <build>

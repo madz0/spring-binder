@@ -1,6 +1,6 @@
-package com.github.madz0.springbinder.annotation;
+package com.github.madz0.springbinder.binding.form.annotation;
 
-import ir.iiscenter.springform.model.BaseGroups;
+import com.github.madz0.springbinder.model.BaseGroups;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
@@ -10,7 +10,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 @Retention(RUNTIME)
 @Target(PARAMETER)
-public @interface RestObject {
+public @interface FormObject {
     String[] entityGraph() default {};
-    Class<BaseGroups.IGroup> group();
+    Class<BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
 }

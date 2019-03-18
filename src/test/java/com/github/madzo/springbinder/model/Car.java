@@ -10,7 +10,7 @@ import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
 import javax.validation.constraints.NotNull;
 
-import ir.iiscenter.springform.validation.ValidationError;
+import com.github.madz0.springbinder.validation.ValidationError;
 import lombok.Getter;
 import lombok.Setter;
 

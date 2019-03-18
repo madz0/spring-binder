@@ -1,8 +1,9 @@
 package com.github.madzo.springbinder.service;
 
+import com.github.madz0.springbinder.utils.rest.RestResult;
 import com.github.madzo.springbinder.model.City;
 import com.github.madzo.springbinder.repository.CityRepository;
-import ir.iiscenter.springform.utils.rest.RestResult;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

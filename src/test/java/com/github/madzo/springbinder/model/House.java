@@ -6,7 +6,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.ManyToOne;
 
-import ir.iiscenter.springform.validation.ValidationError;
+import com.github.madz0.springbinder.validation.ValidationError;
 import lombok.Getter;
 import lombok.Setter;
 

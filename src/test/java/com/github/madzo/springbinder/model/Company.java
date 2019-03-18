@@ -8,9 +8,9 @@ import javax.persistence.*;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-import ir.iiscenter.springform.bind.property.IProperty;
-import ir.iiscenter.springform.model.BaseGroups;
-import ir.iiscenter.springform.validation.ValidationError;
+import com.github.madz0.springbinder.binding.property.IProperty;
+import com.github.madz0.springbinder.model.BaseGroups;
+import com.github.madz0.springbinder.validation.ValidationError;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,7 +26,8 @@ public class Company extends BaseModel {
                     model("employees",
                             model("house", field("id")),
                             field("name")),
-                    model("city", field("id")));
+                    model("city", field("id")),
+                    field("name"));
         }
     }
 

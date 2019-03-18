@@ -1,7 +1,9 @@
-package com.github.madz0.springbinder;
+package com.github.madz0.springbinder.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ir.iiscenter.springform.SpringFormObjectMapper;
+import com.github.madz0.springbinder.binding.form.FormEntityAbstractModelBindingArgumentResolver;
+import com.github.madz0.springbinder.binding.rest.RestObjectHandlerMethodArgument;
+import com.github.madz0.springbinder.binding.rest.serialize.ContextAwareObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.ApplicationContext;
@@ -22,11 +24,12 @@ public class Config implements WebMvcConfigurer {
     ApplicationContext context;
     @Bean
     ObjectMapper getObjectmapper() {
-        return new SpringFormObjectMapper(context);
+        return new ContextAwareObjectMapper(context);
     }
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(new FormEntityModelBindingArgumentResolver(entityManager));
+        resolvers.add(new FormEntityAbstractModelBindingArgumentResolver(entityManager));
+        resolvers.add(new RestObjectHandlerMethodArgument(getObjectmapper(), entityManager));
     }
 }

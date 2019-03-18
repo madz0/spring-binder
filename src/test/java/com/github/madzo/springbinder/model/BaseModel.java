@@ -8,7 +8,7 @@ import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Version;
 
-import ir.iiscenter.springform.model.IBaseModel;
+import com.github.madz0.springbinder.model.IBaseModel;
 import lombok.Getter;
 import lombok.Setter;
 
