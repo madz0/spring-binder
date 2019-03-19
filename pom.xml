@@ -46,19 +46,12 @@
             <version>3.8.1</version>
         </dependency>
         <dependency>
-            <groupId>ir.iiscenter</groupId>
-            <artifactId>spring-form</artifactId>
-            <version>0.0.66-RELEASE</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/spring-form-0.0.66-RELEASE.jar</systemPath>
-        </dependency>
-        <!--<dependency>
             <groupId>ognl</groupId>
             <artifactId>ognl</artifactId>
-            <version>3.2.14-ext-SNAPSHOT</version>
+            <version>3.2.15-ext-SNAPSHOT</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/ognl-3.2.14-ext-SNAPSHOT.jar</systemPath>
-        </dependency>-->
+            <systemPath>${project.basedir}/src/main/resources/ognl-3.2.15-ext-SNAPSHOT.jar</systemPath>
+        </dependency>
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>

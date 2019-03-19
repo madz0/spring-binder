@@ -14,6 +14,9 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import javax.servlet.http.HttpServletRequest;
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.util.Map;
 
@@ -76,5 +79,17 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         mavContainer.addAllAttributes(bindingResultModel);
 
         return value;
+    }
+
+    protected StringBuilder getServeltData(HttpServletRequest request) throws IOException {
+        StringBuilder builder = new StringBuilder();
+        try (BufferedReader br = request.getReader()) {
+            char[] readBytes = new char[1024];
+            int readSize;
+            while ((readSize = br.read(readBytes)) != -1) {
+                builder.append(new String(readBytes, 0, readSize));
+            }
+        }
+        return builder;
     }
 }

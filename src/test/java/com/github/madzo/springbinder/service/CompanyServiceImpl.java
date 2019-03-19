@@ -22,7 +22,7 @@ public class CompanyServiceImpl implements CompanyService {
 	EntityManager entityManager;
 	
 	@Override
-	public Object create(@Validated @FormObject Company company, BindingResult bindingResult) {
+	public Object create(@Validated @FormObject(idClass = Long.class) Company company, BindingResult bindingResult) {
 		if(bindingResult.hasErrors()) {
 			return new RestResult(null, HttpStatus.BAD_REQUEST, null);
 		}
@@ -35,7 +35,7 @@ public class CompanyServiceImpl implements CompanyService {
 		return new RestResult(companyRepository.findAll(), HttpStatus.OK, null);
 	}
 
-	public Object update(@Validated @FormObject(entityGraph = {"employees",
+	public Object update(@Validated @FormObject(idClass = Long.class, entityGraph = {"employees",
 			"city", "employees.cars", "employees.cars.manufacture"}) Company company,
 						 BindingResult bindingResult) {
 		companyRepository.save(company);

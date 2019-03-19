@@ -15,6 +15,7 @@ import com.github.madz0.springbinder.model.IBaseModel;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import ognl.OgnlOps;
 import org.apache.commons.collections4.IteratorUtils;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
@@ -60,10 +61,9 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
             JsonNode idNode = root.get(IBaseModel.ID_FIELD);
             if (clazzNode.isTextual() && idNode.isTextual()) {
                 String clazzName = clazzNode.asText();
-                String id = idNode.asText();
+                Object id = getIdByType(BindUtils.idClass.get(), idNode.asText());
                 Class<?> clazz = Class.forName(clazzName);
-                // TODO: fix this based on generic type of IBaseModel
-                return (T) em.getReference(clazz, UUID.fromString(id));
+                return (T) em.getReference(clazz, id);
             }
             throw new IllegalStateException("can not determine id or class");
         }
@@ -71,7 +71,7 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
         if (BindUtils.updating.get()) {
             JsonNode idNode = root.get(IBaseModel.ID_FIELD);
             try {
-                UUID id = UUID.fromString(idNode.asText());
+                Object id = getIdByType(BindUtils.idClass.get(), idNode.asText());
                 value = (T) em.find(_valueClass, id);
             } catch (Exception e) {
                 throw new InvalidDataAccessApiUsageException(IBaseModel.ID_FIELD);
@@ -150,11 +150,11 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
         return false;
     }
 
-    private Long getId(JsonNode node) {
+    private Object getId(JsonNode node) {
         if (node != null) {
             JsonNode idNode = node.get(IBaseModel.ID_FIELD);
             if (idNode != null) {
-                return Long.valueOf(idNode.textValue());
+                return getIdByType(BindUtils.idClass.get(), idNode.textValue());
             }
         }
         return null;
@@ -345,5 +345,9 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
         } catch (Throwable t) {
             log.error("Deserialization Error", t);
         }
+    }
+
+    private <ID> ID getIdByType(Class<ID> idClass, String id) {
+        return (ID) OgnlOps.convertValue(id, idClass);
     }
 }

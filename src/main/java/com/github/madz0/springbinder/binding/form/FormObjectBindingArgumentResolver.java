@@ -34,11 +34,10 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-public class FormEntityAbstractModelBindingArgumentResolver extends AbstractModelBindingArgumentResolver {
-    private Class<Serializable> idClazz;
+public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgumentResolver {
     private EntityManager em;
 
-    public FormEntityAbstractModelBindingArgumentResolver(EntityManager em) {
+    public FormObjectBindingArgumentResolver(EntityManager em) {
         this.em = em;
     }
 
@@ -50,14 +49,6 @@ public class FormEntityAbstractModelBindingArgumentResolver extends AbstractMode
     @Override
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
-        StringBuilder builder = new StringBuilder();
-        try (BufferedReader br = request.getReader()) {
-            char[] readBytes = new char[1024];
-            int readSize;
-            while ((readSize = br.read(readBytes)) != -1) {
-                builder.append(new String(readBytes, 0, readSize));
-            }
-        }
         String name = parameter.getParameterName();
         BindingResult bindingResult = null;
         Object value = null;
@@ -66,35 +57,31 @@ public class FormEntityAbstractModelBindingArgumentResolver extends AbstractMode
             value = mavContainer.getModel().get(name);
         }
 
-        if (value == null && builder.length() > 0) {
-            mavContainer.setBinding(parameter.getParameterName(), true);
-            Type type = parameter.getParameterType();
-            OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
-            Class cls = null;
-            if (type instanceof ParameterizedType) {
-                ParameterizedType ptype = (ParameterizedType) type;
-                cls = (Class) ptype.getRawType();
-                context.extend(ptype);
-                if (idClazz == null && Collection.class.isAssignableFrom(cls)) {
-                    Class genericType = (Class) ptype.getActualTypeArguments()[0];
-                    checkIdClazz(genericType);
+        if (value == null) {
+            StringBuilder builder = getServeltData(request);
+            if (builder.length() > 0) {
+                mavContainer.setBinding(parameter.getParameterName(), true);
+                Type type = parameter.getParameterType();
+                OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+                Class cls = null;
+                if (type instanceof ParameterizedType) {
+                    ParameterizedType ptype = (ParameterizedType) type;
+                    cls = (Class) ptype.getRawType();
+                    context.extend(ptype);
+                } else {
+                    cls = (Class) type;
+                    context.extend();
                 }
-            } else {
-                cls = (Class) type;
-                if (idClazz == null) {
-                    checkIdClazz(cls);
-                }
-                context.extend();
+                FormObject formObject = parameter.getParameterAnnotation(FormObject.class);
+                context.setObjectConstructor(new EntityModelObjectConstructor<>(em, formObject.idClass(),
+                        createEntityGraph(cls, formObject.entityGraph()), formObject.group()));
+                builder.insert(0, '?');
+                Map<String, List<String>> params = parsQuery(builder.toString(), name);
+                value = Ognl.getValue(params.get(name), context, cls);
+                binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
+                validateIfApplicable(binder, parameter);
+                bindingResult = binder.getBindingResult();
             }
-            FormObject formObject = parameter.getParameterAnnotation(FormObject.class);
-            context.setObjectConstructor(new EntityModelObjectConstructor<>(em, idClazz,
-                    createEntityGraph(cls, formObject.entityGraph()), formObject.group()));
-            builder.insert(0, '?');
-            Map<String, List<String>> params = parsQuery(builder.toString(), name);
-            value = Ognl.getValue(params.get(name), context, cls);
-            binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
-            validateIfApplicable(binder, parameter);
-            bindingResult = binder.getBindingResult();
         }
 
         return finalizeBinding(parameter, mavContainer, webRequest, binderFactory, name, bindingResult, value);
@@ -128,12 +115,11 @@ public class FormEntityAbstractModelBindingArgumentResolver extends AbstractMode
                 value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8");
 
                 //Fix multi select issue
-                if(path.split(key, -1).length-1 > 1) {
-                    int genIndex=0;
-                    if(!notIndexFixMap.containsKey(key)) {
+                if (path.split(key, -1).length - 1 > 1) {
+                    int genIndex = 0;
+                    if (!notIndexFixMap.containsKey(key)) {
                         notIndexFixMap.put(key, new AtomicInteger(0));
-                    }
-                    else {
+                    } else {
                         genIndex = notIndexFixMap.get(key).incrementAndGet();
                     }
                     key = key + String.format("[%d]", genIndex);
@@ -172,15 +158,6 @@ public class FormEntityAbstractModelBindingArgumentResolver extends AbstractMode
             }
         }
         return params;
-    }
-
-    private void checkIdClazz(Class clazz) throws IntrospectionException, OgnlException {
-        if (IBaseModel.class.isAssignableFrom(clazz)) {
-            OgnlPropertyDescriptor idProperty = OgnlRuntime.getPropertyDescriptor(clazz, IBaseModel.ID_FIELD);
-            if (idProperty != null && idProperty.isPropertyDescriptor() && idProperty.getAnnotation(Id.class) != null) {
-                idClazz = (Class<Serializable>) idProperty.getReadMethod().getReturnType();
-            }
-        }
     }
 
     private <T> EntityGraph<T> createEntityGraph(Class<T> clazz, String... relations) {

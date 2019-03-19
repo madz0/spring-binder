@@ -18,6 +18,7 @@ public class BindUtils {
     public static final ThreadLocal<Class<? extends BaseGroups.IGroup>> group = ThreadLocal.withInitial(() -> null);
     public static final ThreadLocal<Boolean> updating = ThreadLocal.withInitial(() -> false);
     private static final ThreadLocal<Stack<Set<IProperty>>> currentProperties = ThreadLocal.withInitial(Stack::new);
+    public static final ThreadLocal<Class<?>> idClass = ThreadLocal.withInitial(() -> Void.class);
 
     public interface RunnableWithException {
         void run() throws Throwable;

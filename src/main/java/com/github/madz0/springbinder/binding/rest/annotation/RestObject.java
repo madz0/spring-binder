@@ -2,6 +2,7 @@ package com.github.madz0.springbinder.binding.rest.annotation;
 
 import com.github.madz0.springbinder.model.BaseGroups;
 
+import java.io.Serializable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
@@ -12,5 +13,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target(PARAMETER)
 public @interface RestObject {
     String[] entityGraph() default {};
-    Class<BaseGroups.IGroup> group();
+    Class<BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
+    Class<Serializable> idClass();
+    boolean isUpdating() default false;
 }

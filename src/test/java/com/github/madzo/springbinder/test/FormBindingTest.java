@@ -1,7 +1,7 @@
 package com.github.madzo.springbinder.test;
 
-import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.binding.form.EntityModelObjectConstructor;
+import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.BaseGroups;
 import com.github.madzo.springbinder.model.*;
 import com.github.madzo.springbinder.repository.CarManufactureRepository;
@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import javax.persistence.EntityManager;
 import java.sql.Date;
 import java.sql.Time;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -26,7 +25,7 @@ import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 
-public class BindingTest extends BaseTest {
+public class FormBindingTest extends BaseTest {
 
     @Autowired
     EntityManager em;
@@ -72,8 +71,6 @@ public class BindingTest extends BaseTest {
         bindingList.add("employees[0].cars[0].manufacture.id=" + carManufacture.getId());
 
         Ognl.getValue(bindingList, context, root);
-
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("Y-M-D");
 
         assertEquals("My company", root.getName());
         assertEquals(city.getId(), root.getCity().getId());
