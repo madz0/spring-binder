@@ -2,8 +2,8 @@ package com.github.madz0.springbinder.utils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
-import sun.net.util.IPAddressUtil;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -44,17 +44,25 @@ public class NetworkUtils {
         if (version == null) {
             return null;
         }
-        byte[] byteArray;
+        byte[] byteArray = null;
         //TODO we must replace IPAddressUtils someday when we have suitable replacement
         switch (version) {
             case IPv4:
                 if (!ipV4Pattern.matcher(ip).matches()) {
                     return null;
                 }
-                byteArray = IPAddressUtil.textToNumericFormatV4(ip);
+                try {
+                    byteArray = InetAddress.getByName(ip).getAddress();
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                }
                 break;
             case IPv6:
-                byteArray = IPAddressUtil.textToNumericFormatV6(ip);
+                try {
+                    byteArray = Inet6Address.getByName(ip).getAddress();
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                }
                 break;
             default:
                 throw new IllegalStateException("Unknown IP version: " + version);

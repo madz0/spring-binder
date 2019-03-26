@@ -13,7 +13,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target(PARAMETER)
 public @interface RestObject {
     String[] entityGraph() default {};
-    Class<BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
-    Class<Serializable> idClass();
+    Class<? extends BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
+    Class<? extends Serializable> idClass();
     boolean isUpdating() default false;
 }

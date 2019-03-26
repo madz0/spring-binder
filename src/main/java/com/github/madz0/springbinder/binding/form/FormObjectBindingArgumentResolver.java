@@ -73,7 +73,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     context.extend();
                 }
                 FormObject formObject = parameter.getParameterAnnotation(FormObject.class);
-                context.setObjectConstructor(new EntityModelObjectConstructor<>(em, formObject.idClass(),
+                context.setObjectConstructor(new EntityModelObjectConstructor(em, formObject.idClass(),
                         createEntityGraph(cls, formObject.entityGraph()), formObject.group()));
                 builder.insert(0, '?');
                 Map<String, List<String>> params = parsQuery(builder.toString(), name);

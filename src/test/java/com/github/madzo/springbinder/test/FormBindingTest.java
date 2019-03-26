@@ -24,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class FormBindingTest extends BaseTest {
 
@@ -39,7 +40,7 @@ public class FormBindingTest extends BaseTest {
     CompanyRepository companyRepository;
 
     @Test
-    public void bindEntityWithGroups() throws OgnlException {
+    public void bindEntityWithGroupsTest() throws OgnlException {
         City city = new City();
         city.setName("Tehran");
         city = cityRepository.save(city);
@@ -82,7 +83,7 @@ public class FormBindingTest extends BaseTest {
     }
 
     @Test
-    public void bindEntityWithGroups_NoCarModel() throws OgnlException {
+    public void bindEntityWithGroups_NoCarModelTest() throws OgnlException {
         City city = new City();
         city.setName("Tehran");
         city = cityRepository.save(city);
@@ -125,10 +126,10 @@ public class FormBindingTest extends BaseTest {
         List<String> bindingList = new ArrayList<>();
         bindingList.add("name=My company");
         bindingList.add("city.id=" + city.getId());
-        bindingList.add("employees[0].id="+employee.getId());
+        bindingList.add("employees[0].id=" + employee.getId());
         bindingList.add("employees[0].name=Mohamad");
         bindingList.add("employees[0].house.id=" + house.getId());
-        bindingList.add("employees[0].cars[0].id="+car.getId());
+        bindingList.add("employees[0].cars[0].id=" + car.getId());
         bindingList.add("employees[0].cars[0].model=Benz clo");
         bindingList.add("employees[0].cars[0].date=" + ld.format(DateTimeFormatter.ofPattern("y-M-d")));
         bindingList.add("employees[0].cars[0].time=10:11:11");
@@ -147,7 +148,7 @@ public class FormBindingTest extends BaseTest {
     }
 
     @Test
-    public void bindDtoWithEntityWithGroups_NoDtoName_NoCarModel() throws OgnlException {
+    public void bindDtoWithEntityWithGroups_NoDtoName_NoCarModelTest() throws OgnlException {
         City city = new City();
         city.setName("Tehran");
         city = cityRepository.save(city);
@@ -195,10 +196,10 @@ public class FormBindingTest extends BaseTest {
         List<String> bindingList = new ArrayList<>();
         bindingList.add("name=My company");
         bindingList.add("company.city.id=" + city.getId());
-        bindingList.add("company.employees[0].id="+employee.getId());
+        bindingList.add("company.employees[0].id=" + employee.getId());
         bindingList.add("company.employees[0].name=Mohamad");
         bindingList.add("company.employees[0].house.id=" + house.getId());
-        bindingList.add("company.employees[0].cars[0].id="+car.getId());
+        bindingList.add("company.employees[0].cars[0].id=" + car.getId());
         bindingList.add("company.employees[0].cars[0].model=Benz clo");
         bindingList.add("company.employees[0].cars[0].date=" + ld.format(DateTimeFormatter.ofPattern("y-M-d")));
         bindingList.add("company.employees[0].cars[0].time=10:11:11");
@@ -214,6 +215,46 @@ public class FormBindingTest extends BaseTest {
         assertEquals(d, root.getCompany().getEmployees().iterator().next().getCars().iterator().next().getDate());
         assertEquals(t, root.getCompany().getEmployees().iterator().next().getCars().iterator().next().getTime());
         assertEquals(carManufacture.getId(), root.getCompany().getEmployees().iterator().next().getCars().iterator().next().getManufacture().getId());
+    }
+
+    @Test
+    public void malformedRequestTest() throws OgnlException {
+        City city = new City();
+        city.setName("Tehran");
+        city = cityRepository.save(city);
+        House house = new House();
+        house.setAddress("Karoon");
+        house.setCity(city);
+        house = houseRepository.save(house);
+        CarManufacture carManufacture = new CarManufacture();
+        carManufacture.setName("BMW");
+        carManufacture = carManufactureRepository.save(carManufacture);
+
+        LocalDate ld = LocalDate.of(2018, 7, 29);
+        Date d = Date.valueOf(ld);
+        LocalTime lt = LocalTime.of(10, 11, 11);
+        Time t = Time.valueOf(lt);
+        OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+        context.extend();
+        context.setObjectConstructor(new EntityModelObjectConstructor(em, Long.class,
+                null, ICreate1.class));
+        Company root = new Company();
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add("gk6q${“zkz”.toString().replace(\"k\", \"x\")}doap2");
+        bindingList.add("city.id=" + city.getId());
+        bindingList.add("employees[0].name=Mohamad");
+        bindingList.add(".employees[0].house.id=" + house.getId());
+        bindingList.add("employees[0].cars[0].model=Benz clo");
+        bindingList.add("employees[0]..cars[0].date=" + ld.format(DateTimeFormatter.ofPattern("y-M-d")));
+        bindingList.add("employees[0].cars[0].time=10:11:11");
+        bindingList.add("employees[0].cars[0].manufacture.id=" + carManufacture.getId());
+
+        try {
+            Ognl.getValue(bindingList, context, root);
+            throw new AssertionError();
+        } catch (Exception e) {
+            assertTrue(e instanceof OgnlException);
+        }
     }
 
     public interface ICreate1 extends BaseGroups.ICreate {

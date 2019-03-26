@@ -13,6 +13,6 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target(PARAMETER)
 public @interface FormObject {
     String[] entityGraph() default {};
-    Class<BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
+    Class<? extends BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
     Class<? extends Serializable> idClass();
 }

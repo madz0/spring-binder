@@ -4,6 +4,7 @@ import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.BaseGroups;
 import com.github.madz0.springbinder.model.IBaseModel;
+import javassist.util.proxy.ProxyFactory;
 import lombok.SneakyThrows;
 import org.hibernate.Hibernate;
 import org.springframework.beans.BeanWrapper;
@@ -84,30 +85,9 @@ public class BindUtils {
     @SuppressWarnings("unchecked")
     public static synchronized Set<IProperty> getPropertiesFromGroup(Class<? extends BaseGroups.IGroup> group) {
         if (!groupMap.containsKey(group)) {
-            BaseGroups.IGroup target = (BaseGroups.IGroup)
-                    Proxy.newProxyInstance(group.getClassLoader(), new Class[]{group},
-                            (Object proxy, Method method, Object[] arguments) -> {
-                                final Class<?> declaringClass = method.getDeclaringClass();
-                                final MethodHandles.Lookup lookup = MethodHandles.publicLookup()
-                                        .in(declaringClass);
-
-                                // ensure allowed mode will not check visibility
-                                final Field f = MethodHandles.Lookup.class.getDeclaredField("allowedModes");
-                                final int modifiers = f.getModifiers();
-                                if (Modifier.isFinal(modifiers)) { // should be done a single time
-                                    final Field modifiersField = Field.class.getDeclaredField("modifiers");
-                                    modifiersField.setAccessible(true);
-                                    modifiersField.setInt(f, modifiers & ~Modifier.FINAL);
-                                    f.setAccessible(true);
-                                    f.set(lookup, MethodHandles.Lookup.PRIVATE);
-                                }
-
-                                return lookup
-                                        .unreflectSpecial(method, declaringClass)
-                                        .bindTo(proxy)
-                                        .invokeWithArguments(arguments);
-                            });
-
+            ProxyFactory proxyFactory = new ProxyFactory();
+            proxyFactory.setInterfaces(new Class[] {group});
+            BaseGroups.IGroup target = (BaseGroups.IGroup) proxyFactory.create(null, null);
             groupMap.put(group, target.getProperties());
         }
         return groupMap.get(group);
