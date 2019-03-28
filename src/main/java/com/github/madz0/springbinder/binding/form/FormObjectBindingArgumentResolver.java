@@ -115,7 +115,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8");
 
                 //Fix multi select issue
-                if (path.split(key, -1).length - 1 > 1) {
+                if (path.split(key+"=", -1).length - 1 > 1) {
                     int genIndex = 0;
                     if (!notIndexFixMap.containsKey(key)) {
                         notIndexFixMap.put(key, new AtomicInteger(0));

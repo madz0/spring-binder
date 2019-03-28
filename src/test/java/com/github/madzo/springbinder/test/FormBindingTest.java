@@ -257,6 +257,21 @@ public class FormBindingTest extends BaseTest {
         }
     }
 
+    @Test
+    public void propertyNameInValueDuplicateFixTest() throws OgnlException {
+        OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+        context.extend();
+        context.setObjectConstructor(new EntityModelObjectConstructor(em, Long.class,
+                null, ICreate1.class));
+        Company root = new Company();
+
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add("name=name");
+        Ognl.getValue(bindingList, context, root);
+
+        assertEquals("name", root.getName());
+    }
+
     public interface ICreate1 extends BaseGroups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
