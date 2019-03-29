@@ -272,6 +272,21 @@ public class FormBindingTest extends BaseTest {
         assertEquals("name", root.getName());
     }
 
+    @Test
+    public void emptyPropertyNameTest() throws OgnlException {
+        OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+        context.extend();
+        context.setObjectConstructor(new EntityModelObjectConstructor(em, Long.class,
+                null, ICreate1.class));
+        Company root = new Company();
+        root.setName("hi");
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add("name=");
+        Ognl.getValue(bindingList, context, root);
+
+        assertEquals(null, root.getName());
+    }
+
     public interface ICreate1 extends BaseGroups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
