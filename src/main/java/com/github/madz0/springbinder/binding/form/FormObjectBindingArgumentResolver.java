@@ -76,7 +76,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 context.setObjectConstructor(new EntityModelObjectConstructor(em, formObject.idClass(),
                         createEntityGraph(cls, formObject.entityGraph()), formObject.group()));
                 builder.insert(0, '?');
-                Map<String, List<String>> params = parsQuery(builder.toString(), name);
+                Map<String, List<String>> params = parsQuery(builder.toString(), name, formObject.fieldsContainRootName());
                 value = Ognl.getValue(params.get(name), context, cls);
                 binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
                 validateIfApplicable(binder, parameter);
@@ -87,7 +87,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
         return finalizeBinding(parameter, mavContainer, webRequest, binderFactory, name, bindingResult, value);
     }
 
-    private Map<String, List<String>> parsQuery(String path, String expectedRoot)
+    private Map<String, List<String>> parsQuery(String path, String expectedRoot, Boolean fieldsContainRootName)
             throws UnsupportedEncodingException {
         Map<String, List<String>> params = new HashMap<>();
         if (path == null || !path.startsWith("?")) {
@@ -126,7 +126,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     key = String.format(key, genIndex);
                 }
 
-                if (expectedRoot != null && !key.startsWith(expectedRoot)) {
+                if (expectedRoot != null && !fieldsContainRootName) {
                     key = expectedRoot + "." + key;
                 }
 
