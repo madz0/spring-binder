@@ -2,15 +2,10 @@ package com.github.madz0.springbinder.binding.form;
 
 import com.github.madz0.springbinder.binding.AbstractModelBindingArgumentResolver;
 import com.github.madz0.springbinder.binding.form.annotation.FormObject;
-import com.github.madz0.springbinder.model.IBaseModel;
 import ognl.Ognl;
 import ognl.OgnlContext;
-import ognl.OgnlException;
-import ognl.OgnlRuntime;
 import ognl.extended.DefaultMemberAccess;
-import ognl.extended.OgnlPropertyDescriptor;
 import org.springframework.core.MethodParameter;
-import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -20,12 +15,8 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import javax.persistence.EntityGraph;
 import javax.persistence.EntityManager;
-import javax.persistence.Id;
 import javax.persistence.Subgraph;
 import javax.servlet.http.HttpServletRequest;
-import java.beans.IntrospectionException;
-import java.io.BufferedReader;
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -96,7 +87,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
         String queryWithoutQuestionMark = path.replaceFirst("\\?", "&");
         final String[] pairs = queryWithoutQuestionMark.split("&");
 
-        Map<String, AtomicInteger> notIndexFixMap = new HashMap<>();
+        Map<String, AtomicInteger> notIndexedFixMap = new HashMap<>();
 
         for (String pair : pairs) {
             if (pair == null || pair.equals("")) {
@@ -116,14 +107,14 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8");
 
                 //Fix multi select issue
-                if (key.endsWith("[%d]")) {
+                if (key.contains("[]")) {
                     int genIndex = 0;
-                    if (!notIndexFixMap.containsKey(key)) {
-                        notIndexFixMap.put(key, new AtomicInteger(0));
+                    if (!notIndexedFixMap.containsKey(key)) {
+                        notIndexedFixMap.put(key, new AtomicInteger(0));
                     } else {
-                        genIndex = notIndexFixMap.get(key).incrementAndGet();
+                        genIndex = notIndexedFixMap.get(key).incrementAndGet();
                     }
-                    key = String.format(key, genIndex);
+                    key = key.replaceFirst("\\[\\]", "["+genIndex+"]");
                 }
 
                 if (expectedRoot != null && !fieldsContainRootName) {

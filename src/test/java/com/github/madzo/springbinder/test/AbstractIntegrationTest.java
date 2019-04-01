@@ -25,8 +25,5 @@ public class AbstractIntegrationTest {
     }
 
     @Test
-    public void contextLoad() {
-
-
-    }
+    public void contextLoad() {}
 }
