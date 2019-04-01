@@ -16,4 +16,6 @@ public @interface FormObject {
     Class<? extends BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
     Class<? extends Serializable> idClass();
     boolean fieldsContainRootName() default false;
+
+    interface Dto extends Serializable {}
 }

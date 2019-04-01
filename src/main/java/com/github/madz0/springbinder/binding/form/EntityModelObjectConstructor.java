@@ -92,16 +92,15 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                                 Object obj = null;
                                 if (model.isPresent()) {
                                     obj = model.get();
-                                } else {
+                                } else if (!collectionNode.getContainsValue() || collectionNode.getValue() != null) {
                                     try {
                                         Object finalObj = obj = OgnlRuntime.createProperObject(contextFinal, genericClazz, genericClazz.getComponentType(), node);
-                                        pushPopPropFields(Collections.singleton(FieldProperty.of(root.getClass().getSimpleName().toLowerCase())), ()-> {
+                                        pushPopPropFields(Collections.singleton(FieldProperty.of(root.getClass().getSimpleName().toLowerCase())), () -> {
                                             try {
                                                 OgnlRuntime.setProperty(contextFinal, finalObj, root.getClass().getSimpleName().toLowerCase(), root);
                                             } catch (Exception e) {
                                                 log.error("", e);
-                                            }
-                                            finally {
+                                            } finally {
                                                 return null;
                                             }
                                         });
@@ -110,17 +109,19 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                                         log.error("", e);
                                     }
                                 }
-                                final Object finalObj = obj;
-                                pushPopPropFields((IModelProperty) currentProp, () -> {
-                                    try {
-                                        Ognl.getValue(collectionNode, contextFinal, finalObj);
-                                    } catch (OgnlException e) {
-                                        log.error("", e);
-                                    }
-                                    finally {
-                                        return null;
-                                    }
-                                });
+
+                                if (!collectionNode.getContainsValue() || collectionNode.getValue() != null) {
+                                    final Object finalObj = obj;
+                                    pushPopPropFields(currentProp, () -> {
+                                        try {
+                                            Ognl.getValue(collectionNode, contextFinal, finalObj);
+                                        } catch (OgnlException e) {
+                                            log.error("", e);
+                                        } finally {
+                                            return null;
+                                        }
+                                    });
+                                }
                             }
                         } else if (propertyDescriptor.getAnnotation(ManyToMany.class) != null) {
                             dest.clear();
@@ -168,8 +169,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                                         Ognl.getValue(collectionNode, contextFinal, finalObj);
                                     } catch (OgnlException e) {
                                         log.error("", e);
-                                    }
-                                    finally {
+                                    } finally {
                                         return null;
                                     }
                                 });
@@ -219,8 +219,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                             Ognl.getValue(node, contextFinal, finalObj);
                         } catch (OgnlException e) {
                             log.error("", e);
-                        }
-                        finally {
+                        } finally {
                             return null;
                         }
                     });
@@ -235,8 +234,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                         Ognl.getValue(node, contextFinal, finalObj);
                     } catch (OgnlException e) {
                         log.error("", e);
-                    }
-                    finally {
+                    } finally {
                         return null;
                     }
                 });
@@ -244,7 +242,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
             return propertyObject;
         }
 
-        return pushPopPropFields(currentProp, ()->super.processObjectForGet(context, root, propertyDescriptor, propertyObject, node));
+        return pushPopPropFields(currentProp, () -> super.processObjectForGet(context, root, propertyDescriptor, propertyObject, node));
     }
 
     @Override
@@ -290,8 +288,8 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
 
     private <T> T pushPopPropFields(IProperty prop, Callable<T> r) {
         if (prop != null) {
-            return pushPopPropFields(prop instanceof IModelProperty?
-                    ((IModelProperty)prop).getFields(): Collections.singleton(prop), r);
+            return pushPopPropFields(prop instanceof IModelProperty ?
+                    ((IModelProperty) prop).getFields() : Collections.singleton(prop), r);
         } else {
             try {
                 return r.call();
