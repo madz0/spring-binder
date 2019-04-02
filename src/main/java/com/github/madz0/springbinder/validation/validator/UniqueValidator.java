@@ -10,13 +10,13 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 
 import javax.persistence.EntityManager;
-import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.github.madz0.springbinder.binding.BindUtils.findPath;
 
 public class UniqueValidator implements ConstraintValidator<Unique, Object> {
     final static public String message = "validation.error.unique";
@@ -60,14 +60,4 @@ public class UniqueValidator implements ConstraintValidator<Unique, Object> {
             ContextAwareObjectMapper.getBean(EntityManager.class).unwrap(Session.class).setHibernateFlushMode(FlushMode.AUTO);
         }
     }
-
-    private <Y> Path<Y> findPath(Root root, String field) {
-        String[] split = field.split("\\.");
-        Path<Y> result = null;
-        for (String s : split) {
-            result = (result == null ? root.get(s) : result.get(s));
-        }
-        return result;
-    }
-
 }

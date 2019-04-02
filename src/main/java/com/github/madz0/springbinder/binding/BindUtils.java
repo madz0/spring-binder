@@ -10,6 +10,8 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 
+import javax.persistence.criteria.Path;
+import javax.persistence.criteria.Root;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.util.*;
@@ -127,5 +129,14 @@ public class BindUtils {
                 }
             }
         }
+    }
+
+    public static <T, Y> Path<Y> findPath(Root<T> root, String field) {
+        String[] split = field.split("\\.");
+        Path<Y> result = null;
+        for (String s : split) {
+            result = (result == null ? root.get(s) : result.get(s));
+        }
+        return result;
     }
 }
