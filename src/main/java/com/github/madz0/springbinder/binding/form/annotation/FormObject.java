@@ -2,7 +2,6 @@ package com.github.madz0.springbinder.binding.form.annotation;
 
 import com.github.madz0.springbinder.model.BaseGroups;
 
-import java.io.Serializable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
@@ -14,8 +13,5 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 public @interface FormObject {
     String[] entityGraph() default {};
     Class<? extends BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
-    Class<? extends Serializable> idClass();
     boolean fieldsContainRootName() default false;
-
-    interface Dto extends Serializable {}
 }

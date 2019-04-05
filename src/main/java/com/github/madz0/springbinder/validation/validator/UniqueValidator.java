@@ -2,6 +2,7 @@ package com.github.madz0.springbinder.validation.validator;
 
 import com.github.madz0.springbinder.binding.rest.serialize.ContextAwareObjectMapper;
 import com.github.madz0.springbinder.model.IBaseModel;
+import com.github.madz0.springbinder.model.IBaseModelId;
 import com.github.madz0.springbinder.repository.BaseRepository;
 import com.github.madz0.springbinder.validation.constraint.Unique;
 import org.hibernate.FlushMode;
@@ -37,11 +38,11 @@ public class UniqueValidator implements ConstraintValidator<Unique, Object> {
             BaseRepository repository = ContextAwareObjectMapper.getBean(unique.repositoryClass());
             long count = repository.count((root, query, cb) -> {
                 List<Predicate> predicates = new ArrayList<>();
-                Object idValue = beanWrapper.getPropertyValue(IBaseModel.ID_FIELD);
+                Object idValue = beanWrapper.getPropertyValue(IBaseModelId.ID_FIELD);
                 if(idValue == null){
-                    predicates.add(cb.isNotNull(root.get(IBaseModel.ID_FIELD)));
+                    predicates.add(cb.isNotNull(root.get(IBaseModelId.ID_FIELD)));
                 }else{
-                    predicates.add(cb.notEqual(root.get(IBaseModel.ID_FIELD), idValue));
+                    predicates.add(cb.notEqual(root.get(IBaseModelId.ID_FIELD), idValue));
                 }
                 Object value = beanWrapper.getPropertyValue(unique.field());
                 predicates.add(cb.equal(root.get(unique.field()), value));

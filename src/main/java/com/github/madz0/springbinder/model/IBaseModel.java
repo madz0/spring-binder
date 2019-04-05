@@ -3,7 +3,7 @@ package com.github.madz0.springbinder.model;
 import java.sql.Time;
 import java.util.Date;
 
-public interface IBaseModel<ID> extends IBaseModelAccess<ID>, IValidate {
+public interface IBaseModel<ID> extends IBaseModelAccess, IValidate {
     String VERSION_FIELD = "version";
     Long getVersion();
     void setVersion(Long version);

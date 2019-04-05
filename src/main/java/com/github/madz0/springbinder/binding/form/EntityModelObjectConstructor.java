@@ -1,11 +1,13 @@
 package com.github.madz0.springbinder.binding.form;
 
 import com.github.madz0.springbinder.binding.BindUtils;
+import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.property.FieldProperty;
 import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.BaseGroups;
 import com.github.madz0.springbinder.model.IBaseModel;
+import com.github.madz0.springbinder.model.IBaseModelId;
 import lombok.extern.slf4j.Slf4j;
 import ognl.*;
 import ognl.extended.*;
@@ -19,28 +21,26 @@ import java.util.*;
 import java.util.concurrent.Callable;
 
 @Slf4j
-public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
+public class EntityModelObjectConstructor extends DefaultObjectConstructor {
 
-    EntityManager entityManager;
-    Class<ID> idClass;
-    EntityGraph<?> graph;
-    //private Set<IProperty> iGroupSet = null;
+    private EntityManager entityManager;
+    private EntityGraph<?> graph;
+    private IdClassMapper idClassMapper;
     private Stack<Set<IProperty>> groupStack = new Stack<>();
 
-    public EntityModelObjectConstructor(EntityManager entityManager, Class<ID> idClass,
-                                        EntityGraph<?> graph, Class<BaseGroups.IGroup> group) {
+    public EntityModelObjectConstructor(EntityManager entityManager, EntityGraph<?> graph, Class<? extends BaseGroups.IGroup> group, IdClassMapper idClassMapper) {
         this.entityManager = entityManager;
-        this.idClass = idClass;
         this.graph = graph;
         if (group != BaseGroups.IGroup.class) {
             groupStack.push(BindUtils.getPropertiesFromGroup(group));
         }
+        this.idClassMapper = idClassMapper;
     }
 
     @Override
     public Object createObject(Class<?> cls, Class<?> componentType, MapNode node) throws InstantiationException, IllegalAccessException {
         if (IBaseModel.class.isAssignableFrom(cls) && node != null && node.getIsRoot()) {
-            ID id = getId(node);
+            Object id = getId(node, getIdClass(cls));
             if (id != null) {
                 if (graph != null) {
                     return entityManager.find(cls, id, Collections.singletonMap("javax.persistence.loadgraph", graph));
@@ -63,7 +63,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
             }
         }
 
-        if (propertyDescriptor != null && root instanceof IBaseModel && idClass != null) {
+        if (propertyDescriptor != null && root instanceof IBaseModel) {
 
             if (node.isCollection()) {
                 Type genericType = propertyDescriptor.getReadMethod().getGenericReturnType();
@@ -126,7 +126,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                         } else if (propertyDescriptor.getAnnotation(ManyToMany.class) != null) {
                             dest.clear();
                             for (MapNode collectionNode : node.getChildren().values()) {
-                                dest.add(entityManager.getReference(genericClazz, collectionNode.getMapping(IBaseModel.ID_FIELD)));
+                                dest.add(entityManager.getReference(genericClazz, collectionNode.getMapping(IBaseModelId.ID_FIELD)));
                             }
                         } else {
                             throw new IllegalStateException("collection field must be OneToMany or ManyToMany");
@@ -164,7 +164,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                                     }
                                 }
                                 final Object finalObj = obj;
-                                pushPopPropFields((IModelProperty) currentProp, () -> {
+                                pushPopPropFields(currentProp, () -> {
                                     try {
                                         Ognl.getValue(collectionNode, contextFinal, finalObj);
                                     } catch (OgnlException e) {
@@ -173,7 +173,6 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                                         return null;
                                     }
                                 });
-
                             }
                         } else {
                             throw new IllegalStateException("Map field must be OneToMany");
@@ -185,7 +184,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                     return propertyObject;
                 }
 
-                Object id = getId(node);
+                Object id = getId(node, getIdClass(propertyObject.getClass()));
                 Object fieldValue = propertyObject;
                 if (id == null) {
                     fieldValue = null;
@@ -201,7 +200,12 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                 OneToOne oneToOne = propertyDescriptor.getAnnotation(OneToOne.class);
                 if (!StringUtils.isEmpty(oneToOne.mappedBy())) {
                     //bind reference
-                    Object id = getId(node);
+                    Object id = null;
+                    try {
+                        id = getId(node, getIdClass(propertyObject.getClass()));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     Object fieldValue;
                     if (id == null) {
                         fieldValue = null;
@@ -214,7 +218,7 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
                     contextFinal.extend();
                     contextFinal.setObjectConstructor(this);
                     final Object finalObj = propertyObject;
-                    pushPopPropFields((IModelProperty) currentProp, () -> {
+                    pushPopPropFields(currentProp, () -> {
                         try {
                             Ognl.getValue(node, contextFinal, finalObj);
                         } catch (OgnlException e) {
@@ -258,18 +262,29 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
     }
 
     private boolean matchId(MapNode node, Object model) {
-        if (model instanceof IBaseModel) {
-            IBaseModel baseModel = (IBaseModel) model;
-            return baseModel.getId() != null && Objects.equals(getId(node), baseModel.getId());
+        if (model instanceof IBaseModelId) {
+            IBaseModelId baseModel = (IBaseModelId) model;
+            return baseModel.getId() != null && Objects.equals(getId(node, baseModel.getId().getClass()), baseModel.getId());
         }
         return false;
     }
 
-    private ID getId(MapNode node) {
+    private Object getId(MapNode node, Class idClass) {
         if (node != null) {
-            MapNode idNode = node.getMapping(IBaseModel.ID_FIELD);
+            MapNode idNode = node.getMapping(IBaseModelId.ID_FIELD);
             if (idNode != null) {
-                return (ID) OgnlOps.convertValue(idNode.getValue(), idClass);
+                if (idNode.getContainsValue()) {
+                    return OgnlOps.convertValue(idNode.getValue(), idClass);
+                } else if (idNode.getChildren().size() > 0) {
+                    try {
+                        OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+                        context.extend();
+                        //We don't need to set objectConstructor to this becase embedded ids are simple serializable
+                        return Ognl.getValue(idNode, context, OgnlRuntime.createProperObject(idClass, idClass));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         }
         return null;
@@ -307,6 +322,16 @@ public class EntityModelObjectConstructor<ID> extends DefaultObjectConstructor {
             return null;
         } finally {
             groupStack.pop();
+        }
+    }
+
+    private Class<?> getIdClass(Class<?> cls) {
+        try {
+            return idClassMapper != null ? idClassMapper.getIdClassOf(cls) :
+                    OgnlRuntime.getPropertyDescriptor(cls, IBaseModelId.ID_FIELD).getReadMethod().getReturnType();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.github.madz0.springbinder.binding.form;
 
 import com.github.madz0.springbinder.binding.AbstractModelBindingArgumentResolver;
+import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.form.annotation.FormObject;
 import ognl.Ognl;
 import ognl.OgnlContext;
@@ -27,9 +28,10 @@ import java.util.stream.Stream;
 
 public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgumentResolver {
     private EntityManager em;
-
-    public FormObjectBindingArgumentResolver(EntityManager em) {
+    private IdClassMapper idClassMapper;
+    public FormObjectBindingArgumentResolver(EntityManager em, IdClassMapper idClassMapper) {
         this.em = em;
+        this.idClassMapper = idClassMapper;
     }
 
     @Override
@@ -64,8 +66,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     context.extend();
                 }
                 FormObject formObject = parameter.getParameterAnnotation(FormObject.class);
-                context.setObjectConstructor(new EntityModelObjectConstructor(em, formObject.idClass(),
-                        createEntityGraph(cls, formObject.entityGraph()), formObject.group()));
+                context.setObjectConstructor(new EntityModelObjectConstructor(em, createEntityGraph(cls, formObject.entityGraph()), formObject.group(), idClassMapper));
                 builder.insert(0, '?');
                 Map<String, List<String>> params = parsQuery(builder.toString(), name, formObject.fieldsContainRootName());
                 value = Ognl.getValue(params.get(name), context, cls);

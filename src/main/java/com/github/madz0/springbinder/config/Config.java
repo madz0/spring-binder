@@ -1,6 +1,7 @@
 package com.github.madz0.springbinder.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.form.FormObjectBindingArgumentResolver;
 import com.github.madz0.springbinder.binding.rest.RestObjectBindingArgumentResolver;
 import com.github.madz0.springbinder.binding.rest.serialize.ContextAwareObjectMapper;
@@ -22,6 +23,9 @@ public class Config implements WebMvcConfigurer {
     EntityManager entityManager;
     @Autowired
     ApplicationContext context;
+    @Autowired(required = false)
+    IdClassMapper idClassMapper;
+
     @Bean
     ObjectMapper getObjectmapper() {
         return new ContextAwareObjectMapper(context);
@@ -29,7 +33,7 @@ public class Config implements WebMvcConfigurer {
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(new FormObjectBindingArgumentResolver(entityManager));
+        resolvers.add(new FormObjectBindingArgumentResolver(entityManager, idClassMapper));
         resolvers.add(new RestObjectBindingArgumentResolver(getObjectmapper(), entityManager));
     }
 }

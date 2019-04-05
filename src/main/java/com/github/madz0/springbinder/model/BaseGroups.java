@@ -35,13 +35,13 @@ public class BaseGroups {
                             if (IBaseModel.class.isAssignableFrom(genericClass)) {
                                 Class<? extends IBaseModel> baseModelGeneric = (Class<? extends IBaseModel>) genericClass;
                                 return ComputedModelProperty.of(clazz, x.getReadMethod().getName(),
-                                        props(field(IBaseModel.ID_FIELD), computed(baseModelGeneric, IBaseModel::getPresentation)));
+                                        props(field(IBaseModelId.ID_FIELD), computed(baseModelGeneric, IBaseModel::getPresentation)));
                             }
                         }
                         if (IBaseModel.class.isAssignableFrom(x.getPropertyType())) {
                             Class<? extends IBaseModel> genericClass = (Class<? extends IBaseModel>) x.getPropertyType();
                             return ComputedModelProperty.of(clazz, x.getReadMethod().getName(),
-                                    props(field(IBaseModel.ID_FIELD), computed(genericClass, IBaseModel::getPresentation)));
+                                    props(field(IBaseModelId.ID_FIELD), computed(genericClass, IBaseModel::getPresentation)));
                         }
                         return ComputedProperty.of(clazz, x.getReadMethod().getName());
                     })
@@ -98,11 +98,11 @@ public class BaseGroups {
     public interface IList extends IGroup {
         @Override
         default Set<IProperty> getProperties() {
-            return props(field(IBaseModel.ID_FIELD));
+            return props(field(IBaseModelId.ID_FIELD));
         }
 
         default Set<IProperty> listProps(Class<? extends IBaseModel> clazz, IProperty... props) {
-            return Stream.concat(Stream.of(field(IBaseModel.ID_FIELD), computed(clazz, IBaseModel::getPresentation),
+            return Stream.concat(Stream.of(field(IBaseModelId.ID_FIELD), computed(clazz, IBaseModel::getPresentation),
                     computed(clazz, IBaseModelAccess::getAccess)), Arrays.stream(props)).collect(Collectors.toSet());
         }
 
@@ -130,7 +130,7 @@ public class BaseGroups {
             return allPropsExcept(clazz,
                     Stream.concat(
                             Stream.of(
-                                    field(IBaseModel.ID_FIELD),
+                                    field(IBaseModelId.ID_FIELD),
                                     field(IBaseModel.VERSION_FIELD),
                                     computed(clazz, IBaseModelAccess::getAccess),
                                     field(IBaseModel.CREATED_BY_FIELD),
@@ -147,12 +147,12 @@ public class BaseGroups {
     public interface IEdit extends IGroup {
         @Override
         default Set<IProperty> getProperties() {
-            return props(field(IBaseModel.ID_FIELD), field(IBaseModel.VERSION_FIELD));
+            return props(field(IBaseModelId.ID_FIELD), field(IBaseModel.VERSION_FIELD));
         }
 
         default Set<IProperty> editProps(Class<? extends IBaseModel> clazz, IProperty... props) {
             return Stream.concat(Stream.of(
-                    field(IBaseModel.ID_FIELD),
+                    field(IBaseModelId.ID_FIELD),
                     field(IBaseModel.VERSION_FIELD),
                     computed(clazz, IBaseModel::getPresentation),
                     computed(clazz, IBaseModelAccess::getAccess)
@@ -178,7 +178,7 @@ public class BaseGroups {
     public interface IView extends IGroup {
         @Override
         default Set<IProperty> getProperties() {
-            return props(field(IBaseModel.ID_FIELD), field(IBaseModel.CREATED_DATE_FIELD),
+            return props(field(IBaseModelId.ID_FIELD), field(IBaseModel.CREATED_DATE_FIELD),
                     field(IBaseModel.MODIFIED_DATE_FIELD), field(IBaseModel.ACCESS_FIELD),
                     model(IBaseModel.CREATED_BY_FIELD, field(IBaseModel.PRESENTATION_FIELD)),
                     model(IBaseModel.MODIFIED_BY_FIELD, field(IBaseModel.PRESENTATION_FIELD)));
@@ -187,7 +187,7 @@ public class BaseGroups {
         default Set<IProperty> viewProps(Class<? extends IBaseModel> clazz, IProperty... props) {
             return Stream.concat(
                     Stream.of(
-                            field(IBaseModel.ID_FIELD),
+                            field(IBaseModelId.ID_FIELD),
                             field(IBaseModel.CREATED_DATE_FIELD),
                             field(IBaseModel.MODIFIED_DATE_FIELD),
                             computed(clazz, IBaseModel::getPresentation),
@@ -211,14 +211,14 @@ public class BaseGroups {
     public interface IDelete extends IGroup {
         @Override
         default Set<IProperty> getProperties() {
-            return props(field(IBaseModel.ID_FIELD));
+            return props(field(IBaseModelId.ID_FIELD));
         }
     }
 
     public interface IDto extends IGroup {
         @Override
         default Set<IProperty> getProperties() {
-            return props(field(IBaseModel.ID_FIELD), field(IBaseModel.RECORD_TYPE_FIELD));
+            return props(field(IBaseModelId.ID_FIELD), field(IBaseModel.RECORD_TYPE_FIELD));
         }
     }
 }

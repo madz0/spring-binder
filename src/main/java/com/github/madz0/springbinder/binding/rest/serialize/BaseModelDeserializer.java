@@ -6,15 +6,14 @@ import com.fasterxml.jackson.databind.deser.*;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.node.TreeTraversingParser;
-
 import com.github.madz0.springbinder.binding.BindUtils;
 import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.BaseGroups;
 import com.github.madz0.springbinder.model.IBaseModel;
+import com.github.madz0.springbinder.model.IBaseModelId;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-
 import ognl.OgnlOps;
 import org.apache.commons.collections4.IteratorUtils;
 import org.springframework.beans.BeanWrapperImpl;
@@ -58,7 +57,7 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
         JsonNode root = p.getCodec().readTree(p);
         if (BaseGroups.IDto.class.isAssignableFrom(BindUtils.group.get())) {
             JsonNode clazzNode = root.get(IBaseModel.RECORD_TYPE_FIELD);
-            JsonNode idNode = root.get(IBaseModel.ID_FIELD);
+            JsonNode idNode = root.get(IBaseModelId.ID_FIELD);
             if (clazzNode.isTextual() && idNode.isTextual()) {
                 String clazzName = clazzNode.asText();
                 Object id = getIdByType(BindUtils.idClass.get(), idNode.asText());
@@ -69,15 +68,15 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
         }
         T value;
         if (BindUtils.updating.get()) {
-            JsonNode idNode = root.get(IBaseModel.ID_FIELD);
+            JsonNode idNode = root.get(IBaseModelId.ID_FIELD);
             try {
                 Object id = getIdByType(BindUtils.idClass.get(), idNode.asText());
                 value = (T) em.find(_valueClass, id);
             } catch (Exception e) {
-                throw new InvalidDataAccessApiUsageException(IBaseModel.ID_FIELD);
+                throw new InvalidDataAccessApiUsageException(IBaseModelId.ID_FIELD);
             }
             if (value == null) {
-                throw new InvalidDataAccessApiUsageException(IBaseModel.ID_FIELD);
+                throw new InvalidDataAccessApiUsageException(IBaseModelId.ID_FIELD);
             }
         } else {
             if (beanDeserializer != null) {
@@ -144,7 +143,7 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
 
     private boolean matchId(JsonNode node, Object model) {
         if (model instanceof IBaseModel) {
-            IBaseModel baseModel = (IBaseModel) model;
+            IBaseModelId baseModel = (IBaseModelId) model;
             return baseModel.getId() != null && Objects.equals(getId(node), baseModel.getId());
         }
         return false;
@@ -152,7 +151,7 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
 
     private Object getId(JsonNode node) {
         if (node != null) {
-            JsonNode idNode = node.get(IBaseModel.ID_FIELD);
+            JsonNode idNode = node.get(IBaseModelId.ID_FIELD);
             if (idNode != null) {
                 return getIdByType(BindUtils.idClass.get(), idNode.textValue());
             }
