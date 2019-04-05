@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 import com.github.madz0.springbinder.binding.BindUtils;
+import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.BaseGroups;
@@ -26,12 +27,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 @Slf4j
-public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer<T> implements ResolvableDeserializer {
+public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializer<T> implements ResolvableDeserializer {
     private final ObjectMapper objectMapper;
     private final JsonDeserializer deserializer;
     private final BeanDeserializer beanDeserializer;
     private final BeanWrapperImpl beanWrapper;
     private final EntityManager em;
+    private IdClassMapper idClassMapper = null;
 
     BaseModelDeserializer(Class<?> vc, ObjectMapper objectMapper, JsonDeserializer deserializer) {
         super(vc);
@@ -45,6 +47,11 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
             this.beanWrapper = null;
         }
         this.em = ContextAwareObjectMapper.getBean(EntityManager.class);
+        try {
+            this.idClassMapper = ContextAwareObjectMapper.getBean(IdClassMapper.class);
+        } catch (Exception e) {
+            log.warn("Could not find bean of type {}. Please create one if you appreciate a little more speed!", IdClassMapper.class);
+        }
     }
 
     @Override
@@ -60,18 +67,22 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
             JsonNode idNode = root.get(IBaseModelId.ID_FIELD);
             if (clazzNode.isTextual() && idNode.isTextual()) {
                 String clazzName = clazzNode.asText();
-                Object id = getIdByType(BindUtils.idClass.get(), idNode.asText());
                 Class<?> clazz = Class.forName(clazzName);
+                Object id = getId(idNode, getIdClass(clazz));
                 return (T) em.getReference(clazz, id);
             }
             throw new IllegalStateException("can not determine id or class");
         }
         T value;
         if (BindUtils.updating.get()) {
-            JsonNode idNode = root.get(IBaseModelId.ID_FIELD);
             try {
-                Object id = getIdByType(BindUtils.idClass.get(), idNode.asText());
-                value = (T) em.find(_valueClass, id);
+                Object id = getId(root, getIdClass(_valueClass));
+                EntityGraph<?> graph = BindUtils.entityGraph.get();
+                if (graph != null) {
+                    value = (T) em.find(_valueClass, id, Collections.singletonMap("javax.persistence.loadgraph", graph));
+                } else {
+                    value = (T) em.find(_valueClass, id);
+                }
             } catch (Exception e) {
                 throw new InvalidDataAccessApiUsageException(IBaseModelId.ID_FIELD);
             }
@@ -142,18 +153,28 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
     }
 
     private boolean matchId(JsonNode node, Object model) {
-        if (model instanceof IBaseModel) {
+        if (model instanceof IBaseModelId) {
             IBaseModelId baseModel = (IBaseModelId) model;
-            return baseModel.getId() != null && Objects.equals(getId(node), baseModel.getId());
+            return baseModel.getId() != null && Objects.equals(getId(node, baseModel.getId().getClass()), baseModel.getId());
         }
         return false;
     }
 
-    private Object getId(JsonNode node) {
+    private Object getId(JsonNode node, Class idClass) {
         if (node != null) {
             JsonNode idNode = node.get(IBaseModelId.ID_FIELD);
             if (idNode != null) {
-                return getIdByType(BindUtils.idClass.get(), idNode.textValue());
+                if (idNode.isTextual()) {
+                    return getIdByType(idClass, idNode.textValue());
+                } else if (idNode.isNumber()) {
+                    return getIdByType(idClass, String.valueOf(idNode.numberValue()));
+                } else if (idNode.isObject()) {
+                    try {
+                        return objectMapper.readerForUpdating(BindUtils.createModel(idClass)).readValue(idNode);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         }
         return null;
@@ -171,7 +192,7 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
         @Override
         public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config, BeanDescription beanDesc, JsonDeserializer<?> deserializer) {
             ObjectMapper objectMapper = ContextAwareObjectMapper.getBean(ObjectMapper.class);
-            if (IBaseModel.class.isAssignableFrom(beanDesc.getBeanClass())) {
+            if (IBaseModelId.class.isAssignableFrom(beanDesc.getBeanClass())) {
                 return new BaseModelDeserializer(beanDesc.getBeanClass(), objectMapper, deserializer);
             }
             if (deserializer instanceof BeanDeserializer) {
@@ -218,19 +239,24 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
                                         .findAny();
                                 final Collection finalDest = dest;
                                 BindUtils.pushPopProperties(modelProperty.getFields(), () -> {
+                                    Object modelObj = null;
                                     if (model.isPresent()) {
-                                        objectMapper.readerForUpdating(model.get()).readValue(collectionNode);
+                                        modelObj = model.get();
+                                        objectMapper.readerForUpdating(modelObj).readValue(collectionNode);
                                     } else {
                                         //instantiate and add new
-                                        finalDest.add(objectMapper.readerForUpdating(BindUtils.createModel(genericType.getRawClass())).readValue(collectionNode));
+                                        modelObj = BindUtils.createModel(genericType.getRawClass());
+                                        finalDest.add(objectMapper.readerForUpdating(modelObj).readValue(collectionNode));
                                     }
+                                    BindUtils.getBeanWrapper(modelObj.getClass()).
+                                            getPropertyDescriptor(_valueClass.getSimpleName())
+                                            .getWriteMethod().invoke(modelObj, value);
                                 });
-
                             }
                         } else if (beanProperty.getAnnotation(ManyToMany.class) != null) {
                             dest.clear();
                             for (JsonNode jsonNode : node) {
-                                dest.add(em.getReference(genericType.getRawClass(), getId(jsonNode)));
+                                dest.add(em.getReference(genericType.getRawClass(), getId(jsonNode, getIdClass(genericType.getRawClass()))));
                             }
                         } else {
                             throw new IllegalStateException("collection field must be OneToMany or ManyToMany");
@@ -293,26 +319,12 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
                         }
                     }
                 } else if (beanProperty.getAnnotation(ManyToOne.class) != null) {
-                    Object id = getId(node);
-                    Object fieldValue;
-                    if (id == null) {
-                        fieldValue = null;
-                    } else {
-                        fieldValue = em.getReference(beanProperty.getType().getRawClass(), id);
-                    }
-                    beanProperty.set(value, fieldValue);
+                    getReferenceForNode(beanProperty, node, value);
                 } else if (beanProperty.getAnnotation(OneToOne.class) != null) {
                     OneToOne oneToOne = beanProperty.getAnnotation(OneToOne.class);
                     if (!StringUtils.isEmpty(oneToOne.mappedBy())) {
                         //bind reference
-                        Object id = getId(node);
-                        Object fieldValue;
-                        if (id == null) {
-                            fieldValue = null;
-                        } else {
-                            fieldValue = em.getReference(beanProperty.getType().getRawClass(), id);
-                        }
-                        beanProperty.set(value, fieldValue);
+                        getReferenceForNode(beanProperty, node, value);
                     } else {
                         bindRecursive(value, node, beanProperty, modelProperty);
                     }
@@ -346,7 +358,23 @@ public class BaseModelDeserializer<T extends IBaseModel> extends StdDeserializer
         }
     }
 
+    private void getReferenceForNode(SettableBeanProperty beanProperty, JsonNode node, T value) throws IOException {
+        Class<?> entityCls = beanProperty.getType().getRawClass();
+        Object id = getId(node, getIdClass(entityCls));
+        Object fieldValue;
+        if (id == null) {
+            fieldValue = null;
+        } else {
+            fieldValue = em.getReference(entityCls, id);
+        }
+        beanProperty.set(value, fieldValue);
+    }
+
     private <ID> ID getIdByType(Class<ID> idClass, String id) {
         return (ID) OgnlOps.convertValue(id, idClass);
+    }
+
+    private Class<?> getIdClass(Class<?> cls) {
+        return idClassMapper != null ? idClassMapper.getIdClassOf(cls) : BindUtils.getBeanWrapper(cls).getPropertyDescriptor(IBaseModelId.ID_FIELD).getReadMethod().getReturnType();
     }
 }

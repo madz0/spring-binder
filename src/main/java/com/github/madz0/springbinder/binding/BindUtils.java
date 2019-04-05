@@ -10,6 +10,7 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 
+import javax.persistence.EntityGraph;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Root;
 import java.lang.invoke.MethodHandles;
@@ -21,7 +22,7 @@ public class BindUtils {
     public static final ThreadLocal<Class<? extends BaseGroups.IGroup>> group = ThreadLocal.withInitial(() -> null);
     public static final ThreadLocal<Boolean> updating = ThreadLocal.withInitial(() -> false);
     private static final ThreadLocal<Stack<Set<IProperty>>> currentProperties = ThreadLocal.withInitial(Stack::new);
-    public static final ThreadLocal<Class<?>> idClass = ThreadLocal.withInitial(() -> Void.class);
+    public static final ThreadLocal<EntityGraph<?>> entityGraph = ThreadLocal.withInitial(() -> null);
 
     public interface RunnableWithException {
         void run() throws Throwable;

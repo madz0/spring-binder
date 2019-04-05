@@ -14,11 +14,15 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import javax.persistence.EntityGraph;
+import javax.persistence.EntityManager;
+import javax.persistence.Subgraph;
 import javax.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.util.Map;
+import java.util.stream.Stream;
 
 public abstract class AbstractModelBindingArgumentResolver implements HandlerMethodArgumentResolver, HandlerMethodReturnValueHandler {
     protected boolean isBindExceptionRequired(MethodParameter parameter) {
@@ -91,5 +95,19 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
             }
         }
         return builder;
+    }
+
+    public <T> EntityGraph<T> createEntityGraph(EntityManager em, Class<T> clazz, String... relations) {
+        if (relations == null || relations.length == 0) {
+            return null;
+        }
+        EntityGraph<T> graph = em.createEntityGraph(clazz);
+        Stream.of(relations).forEach(path -> {
+            String[] splitted = path.split("\\.");
+            Subgraph<T> root = graph.addSubgraph(splitted[0]);
+            for (int i = 1; i < splitted.length; i++)
+                root = root.addSubgraph(splitted[i]);
+        });
+        return graph;
     }
 }

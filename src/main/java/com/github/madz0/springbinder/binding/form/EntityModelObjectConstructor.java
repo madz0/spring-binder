@@ -6,7 +6,6 @@ import com.github.madz0.springbinder.binding.property.FieldProperty;
 import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.BaseGroups;
-import com.github.madz0.springbinder.model.IBaseModel;
 import com.github.madz0.springbinder.model.IBaseModelId;
 import lombok.extern.slf4j.Slf4j;
 import ognl.*;
@@ -39,7 +38,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
 
     @Override
     public Object createObject(Class<?> cls, Class<?> componentType, MapNode node) throws InstantiationException, IllegalAccessException {
-        if (IBaseModel.class.isAssignableFrom(cls) && node != null && node.getIsRoot()) {
+        if (IBaseModelId.class.isAssignableFrom(cls) && node != null && node.getIsRoot()) {
             Object id = getId(node, getIdClass(cls));
             if (id != null) {
                 if (graph != null) {
@@ -63,7 +62,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
             }
         }
 
-        if (propertyDescriptor != null && root instanceof IBaseModel) {
+        if (propertyDescriptor != null && root instanceof IBaseModelId) {
 
             if (node.isCollection()) {
                 Type genericType = propertyDescriptor.getReadMethod().getGenericReturnType();

@@ -11,6 +11,7 @@ import java.io.Serializable;
 @EqualsAndHashCode(of = {"employeeId", "parkingId"})
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(of = {"employeeId", "parkingId"})
 @Embeddable
 public class EmployeeParkingId implements Serializable {
     @Column(name = "employee_id")

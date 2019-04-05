@@ -6,13 +6,11 @@ import com.github.madz0.springbinder.binding.BindUtils;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.config.Config;
 import com.github.madz0.springbinder.model.*;
-import com.github.madz0.springbinder.repository.CarManufactureRepository;
-import com.github.madz0.springbinder.repository.CompanyRepository;
-import com.github.madz0.springbinder.repository.HouseRepository;
-import com.github.madz0.springbinder.repository.CityRepository;
+import com.github.madz0.springbinder.repository.*;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.ComponentScan;
 
 import javax.persistence.EntityManager;
 import java.io.IOException;
@@ -27,6 +25,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
+@ComponentScan({"com.github.madz0.springbinder.test"})
 @SpringBootTest(classes = {App.class, Config.class})
 public class JsonBindingTest extends BaseTest {
 
@@ -42,6 +41,12 @@ public class JsonBindingTest extends BaseTest {
     CompanyRepository companyRepository;
     @Autowired
     ObjectMapper mapper;
+    @Autowired
+    EmployeeRepository employeeRepository;
+    @Autowired
+    ParkingRepository parkingRepository;
+    @Autowired
+    EmployeeParkingRepository employeeParkingRepository;
 
     @Test
     public void bindEntityWithGroups() throws IOException {
@@ -65,30 +70,27 @@ public class JsonBindingTest extends BaseTest {
         String data = "{\n" +
                 "\"name\":\"My company\",\n" +
                 "\"city\":{\n" +
-                " \"id\":\""+city.getId()+"\"\n" +
+                " \"id\":\"" + city.getId() + "\"\n" +
                 "},\n" +
                 "\"employees\": [{\n" +
                 " \"name\":\"Mohamad\",\n" +
                 " \"house\":{\n" +
-                "  \"id\":\""+house.getId()+"\"\n" +
+                "  \"id\":\"" + house.getId() + "\"\n" +
                 " },\n" +
                 " \"cars\":[{\n" +
                 "  \"model\":\"Benz clo\",\n" +
-                "  \"date\":\""+ld.format(DateTimeFormatter.ofPattern("y-MM-dd"))+"\",\n" +
+                "  \"date\":\"" + ld.format(DateTimeFormatter.ofPattern("y-MM-dd")) + "\",\n" +
                 "  \"time\":\"10:11:11\",\n" +
                 "  \"manufacture\":{\n" +
-                "   \"id\":\""+carManufacture.getId()+"\"\n" +
+                "   \"id\":\"" + carManufacture.getId() + "\"\n" +
                 "  }}]\n" +
                 "}]}";
         Company root;
         try {
             BindUtils.group.set(ICreate1.class);
-            BindUtils.idClass.set(Long.class);
             root = mapper.readValue(data, Company.class);
-        }
-        finally {
+        } finally {
             BindUtils.group.remove();
-            BindUtils.idClass.remove();
         }
         assertEquals("My company", root.getName());
         assertEquals(city.getId(), root.getCity().getId());
@@ -135,35 +137,32 @@ public class JsonBindingTest extends BaseTest {
         employee.setCars(new HashSet<>(Arrays.asList(car)));
         root.setEmployees(new HashSet<>(Arrays.asList(employee)));
         root = companyRepository.save(root);
-        String data = "{\"id\":\""+root.getId()+"\"," +
+        String data = "{\"id\":\"" + root.getId() + "\"," +
                 "\"name\":\"My company\",\n" +
                 "\"city\":{\n" +
-                " \"id\":\""+city.getId()+"\"\n" +
+                " \"id\":\"" + city.getId() + "\"\n" +
                 "},\n" +
                 "\"employees\": [{\n" +
-                " \"id\":\""+employee.getId()+"\",\n" +
+                " \"id\":\"" + employee.getId() + "\",\n" +
                 " \"name\":\"Mohamad\",\n" +
                 " \"house\":{\n" +
-                "  \"id\":\""+house.getId()+"\"\n" +
+                "  \"id\":\"" + house.getId() + "\"\n" +
                 " },\n" +
                 " \"cars\":[{\n" +
-                "  \"id\":\""+car.getId()+"\",\n" +
+                "  \"id\":\"" + car.getId() + "\",\n" +
                 "  \"model\":\"Benz clo\",\n" +
-                "  \"date\":\""+ld.format(DateTimeFormatter.ofPattern("y-MM-dd"))+"\",\n" +
+                "  \"date\":\"" + ld.format(DateTimeFormatter.ofPattern("y-MM-dd")) + "\",\n" +
                 "  \"time\":\"10:11:11\",\n" +
                 "  \"manufacture\":{\n" +
-                "   \"id\":\""+carManufacture.getId()+"\"\n" +
+                "   \"id\":\"" + carManufacture.getId() + "\"\n" +
                 "  }}]\n" +
                 "}]}";
         try {
             BindUtils.group.set(ICreate2.class);
-            BindUtils.idClass.set(Long.class);
             BindUtils.updating.set(true);
             root = mapper.readValue(data, Company.class);
-        }
-        finally {
+        } finally {
             BindUtils.group.remove();
-            BindUtils.idClass.remove();
             BindUtils.updating.remove();
         }
         assertEquals("My company", root.getName());
@@ -174,6 +173,73 @@ public class JsonBindingTest extends BaseTest {
         assertEquals(d.toLocalDate(), root.getEmployees().iterator().next().getCars().iterator().next().getDate().toLocalDate());
         assertEquals(t, root.getEmployees().iterator().next().getCars().iterator().next().getTime());
         assertEquals(carManufacture.getId(), root.getEmployees().iterator().next().getCars().iterator().next().getManufacture().getId());
+    }
+
+    @Test
+    public void embeddedIdPropertyBindTest() throws IOException {
+        City city = new City();
+        city.setName("Tehran");
+        city = cityRepository.save(city);
+        House house = new House();
+        house.setAddress("Karoon");
+        house.setCity(city);
+        house = houseRepository.save(house);
+        Company company = new Company();
+        company.setName("Your Company");
+        company.setCity(city);
+
+        Employee employee = new Employee();
+        employee.setCompany(company);
+        employee.setName("Gholi");
+        employee.setHouse(house);
+        employeeRepository.save(employee);
+
+        Parking parking1 = new Parking();
+        parking1.setName("parking1");
+        parkingRepository.save(parking1);
+        Parking parking2 = new Parking();
+        parking2.setName("parking2");
+        parkingRepository.save(parking2);
+
+        EmployeeParking employeeParking = new EmployeeParking();
+        employeeParking.setId(new EmployeeParkingId(employee.getId(), parking1.getId()));
+        employeeParking.setEmployee(employee);
+        employeeParking.setParking(parking1);
+        employeeParkingRepository.save(employeeParking);
+
+        employee.setEmployeeParkings(new HashSet<>(Arrays.asList(employeeParking)));
+        employeeRepository.save(employee);
+
+        String data = "{\n" +
+                "\t\"id\":" + employee.getId() + ",\n" +
+                "\t\"employeeParkings\":[{\n" +
+                "\t\t\"id\":{\n" +
+                "\t\t\t\"employeeId\":" + employee.getId() + ",\n" +
+                "\t\t\t\"parkingId\":" + parking1.getId() + "\n" +
+                "\t\t},\n" +
+                "\t\t\"parking\": {\n" +
+                "\t\t\t\"id\": " + parking1.getId() + "\n" +
+                "\t\t}\n" +
+                "\t},{\n" +
+                "\t\t\"id\":{\n" +
+                "\t\t\t\"employeeId\":" + employee.getId() + ",\n" +
+                "\t\t\t\"parkingId\":" + parking2.getId() + "\n" +
+                "\t\t},\n" +
+                "\t\t\"parking\": {\n" +
+                "\t\t\t\"id\": " + parking2.getId() +
+                "\t\t}\n" +
+                "\t}]\n" +
+                "}";
+        try {
+            BindUtils.group.set(EditEmployee.class);
+            BindUtils.updating.set(true);
+            Employee root = mapper.readValue(data, Employee.class);
+            root = employeeRepository.save(root);
+            assertEquals(2, root.getEmployeeParkings().size());
+        } finally {
+            BindUtils.group.remove();
+            BindUtils.updating.remove();
+        }
     }
 
     public interface ICreate1 extends BaseGroups.ICreate {
@@ -216,6 +282,15 @@ public class JsonBindingTest extends BaseTest {
                                     model("manufacture", field("id")))),
                     model("city", field("id"))
             ));
+        }
+    }
+
+    public interface EditEmployee extends BaseGroups.IEdit {
+        @Override
+        default Set<IProperty> getProperties() {
+            return editProps(Employee.class, model("employeeParkings",
+                    model("id", field("employeeId"), field("parkingId")),
+                    model("parking", field("id"))));
         }
     }
 }

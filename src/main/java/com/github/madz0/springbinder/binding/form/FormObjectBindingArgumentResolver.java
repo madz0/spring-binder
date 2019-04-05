@@ -66,7 +66,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     context.extend();
                 }
                 FormObject formObject = parameter.getParameterAnnotation(FormObject.class);
-                context.setObjectConstructor(new EntityModelObjectConstructor(em, createEntityGraph(cls, formObject.entityGraph()), formObject.group(), idClassMapper));
+                context.setObjectConstructor(new EntityModelObjectConstructor(em, createEntityGraph(em, cls, formObject.entityGraph()), formObject.group(), idClassMapper));
                 builder.insert(0, '?');
                 Map<String, List<String>> params = parsQuery(builder.toString(), name, formObject.fieldsContainRootName());
                 value = Ognl.getValue(params.get(name), context, cls);
@@ -151,20 +151,6 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
             }
         }
         return params;
-    }
-
-    private <T> EntityGraph<T> createEntityGraph(Class<T> clazz, String... relations) {
-        if (relations == null || relations.length == 0) {
-            return null;
-        }
-        EntityGraph<T> graph = em.createEntityGraph(clazz);
-        Stream.of(relations).forEach(path -> {
-            String[] splitted = path.split("\\.");
-            Subgraph<T> root = graph.addSubgraph(splitted[0]);
-            for (int i = 1; i < splitted.length; i++)
-                root = root.addSubgraph(splitted[i]);
-        });
-        return graph;
     }
 
     @Override
