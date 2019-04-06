@@ -63,7 +63,6 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
         }
 
         if (propertyDescriptor != null && root instanceof IBaseModelId) {
-
             if (node.isCollection()) {
                 Type genericType = propertyDescriptor.getReadMethod().getGenericReturnType();
                 ParameterizedType parameterizedType = (ParameterizedType) genericType; //If not let it throws exception

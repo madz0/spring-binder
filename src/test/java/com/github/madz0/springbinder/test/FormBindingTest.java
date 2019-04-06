@@ -66,15 +66,15 @@ public class FormBindingTest extends BaseTest {
         context.setObjectConstructor(new EntityModelObjectConstructor(em,
                 null, ICreate1.class, idClassMapper));
         Company root = new Company();
-        List<String> bindingList = new ArrayList<>();
-        bindingList.add("name=My company");
-        bindingList.add("city.id=" + city.getId());
-        bindingList.add("employees[0].name=Mohamad");
-        bindingList.add("employees[0].house.id=" + house.getId());
-        bindingList.add("employees[0].cars[0].model=Benz clo");
-        bindingList.add("employees[0].cars[0].date=" + ld.format(DateTimeFormatter.ofPattern("y-M-d")));
-        bindingList.add("employees[0].cars[0].time=10:11:11");
-        bindingList.add("employees[0].cars[0].manufacture.id=" + carManufacture.getId());
+        List<Map.Entry<String, Object>> bindingList = new ArrayList<>();
+        bindingList.add(new AbstractMap.SimpleEntry<>("name","My company"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("city.id", city.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].name","Mohamad"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].house.id", house.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].model","Benz clo"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].date", ld.format(DateTimeFormatter.ofPattern("y-M-d"))));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].time","10:11:11"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].manufacture.id", carManufacture.getId()));
 
         Ognl.getValue(bindingList, context, root);
 
@@ -128,17 +128,17 @@ public class FormBindingTest extends BaseTest {
 
         root = companyRepository.save(root);
 
-        List<String> bindingList = new ArrayList<>();
-        bindingList.add("name=My company");
-        bindingList.add("city.id=" + city.getId());
-        bindingList.add("employees[0].id=" + employee.getId());
-        bindingList.add("employees[0].name=Mohamad");
-        bindingList.add("employees[0].house.id=" + house.getId());
-        bindingList.add("employees[0].cars[0].id=" + car.getId());
-        bindingList.add("employees[0].cars[0].model=Benz clo");
-        bindingList.add("employees[0].cars[0].date=" + ld.format(DateTimeFormatter.ofPattern("y-M-d")));
-        bindingList.add("employees[0].cars[0].time=10:11:11");
-        bindingList.add("employees[0].cars[0].manufacture.id=" + carManufacture.getId());
+        List<Map.Entry<String, Object>> bindingList = new ArrayList<>();
+        bindingList.add(new AbstractMap.SimpleEntry<>("name","My company"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("city.id", city.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].id", employee.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].name","Mohamad"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].house.id", house.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].id", car.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].model","Benz clo"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].date", ld.format(DateTimeFormatter.ofPattern("y-M-d"))));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].time","10:11:11"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].manufacture.id", carManufacture.getId()));
 
         Ognl.getValue(bindingList, context, root);
 
@@ -198,17 +198,17 @@ public class FormBindingTest extends BaseTest {
         root.setCompany(company);
         root.setName("dto");
 
-        List<String> bindingList = new ArrayList<>();
-        bindingList.add("name=My company");
-        bindingList.add("company.city.id=" + city.getId());
-        bindingList.add("company.employees[0].id=" + employee.getId());
-        bindingList.add("company.employees[0].name=Mohamad");
-        bindingList.add("company.employees[0].house.id=" + house.getId());
-        bindingList.add("company.employees[0].cars[0].id=" + car.getId());
-        bindingList.add("company.employees[0].cars[0].model=Benz clo");
-        bindingList.add("company.employees[0].cars[0].date=" + ld.format(DateTimeFormatter.ofPattern("y-M-d")));
-        bindingList.add("company.employees[0].cars[0].time=10:11:11");
-        bindingList.add("company.employees[0].cars[0].manufacture.id=" + carManufacture.getId());
+        List<Map.Entry<String, Object>> bindingList = new ArrayList<>();
+        bindingList.add(new AbstractMap.SimpleEntry<>("name","My company"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("company.city.id", city.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("company.employees[0].id", employee.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("company.employees[0].name","Mohamad"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("company.employees[0].house.id", house.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("company.employees[0].cars[0].id", car.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("company.employees[0].cars[0].model","Benz clo"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("company.employees[0].cars[0].date", ld.format(DateTimeFormatter.ofPattern("y-M-d"))));
+        bindingList.add(new AbstractMap.SimpleEntry<>("company.employees[0].cars[0].time","10:11:11"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("company.employees[0].cars[0].manufacture.id", carManufacture.getId()));
 
         Ognl.getValue(bindingList, context, root);
 
@@ -244,15 +244,15 @@ public class FormBindingTest extends BaseTest {
         context.setObjectConstructor(new EntityModelObjectConstructor(em,
                 null, ICreate1.class, idClassMapper));
         Company root = new Company();
-        List<String> bindingList = new ArrayList<>();
-        bindingList.add("gk6q${“zkz”.toString().replace(\"k\", \"x\")}doap2");
-        bindingList.add("city.id=" + city.getId());
-        bindingList.add("employees[0].name=Mohamad");
-        bindingList.add(".employees[0].house.id=" + house.getId());
-        bindingList.add("employees[0].cars[0].model=Benz clo");
-        bindingList.add("employees[0]..cars[0].date=" + ld.format(DateTimeFormatter.ofPattern("y-M-d")));
-        bindingList.add("employees[0].cars[0].time=10:11:11");
-        bindingList.add("employees[0].cars[0].manufacture.id=" + carManufacture.getId());
+        List<Map.Entry<String, Object>> bindingList = new ArrayList<>();
+        bindingList.add(new AbstractMap.SimpleEntry<>("gk6q${“zkz”.toString().replace(\"k\", \"x\")}doap2", null));
+        bindingList.add(new AbstractMap.SimpleEntry<>("city.id", city.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].name","Mohamad"));
+        bindingList.add(new AbstractMap.SimpleEntry<>(".employees[0].house.id", house.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].model","Benz clo"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0]..cars[0].date", ld.format(DateTimeFormatter.ofPattern("y-M-d"))));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].time","10:11:11"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("employees[0].cars[0].manufacture.id", carManufacture.getId()));
 
         try {
             Ognl.getValue(bindingList, context, root);
@@ -270,8 +270,8 @@ public class FormBindingTest extends BaseTest {
                 null, ICreate1.class, idClassMapper));
         Company root = new Company();
 
-        List<String> bindingList = new ArrayList<>();
-        bindingList.add("name=name");
+        List<Map.Entry<String, Object>> bindingList = new ArrayList<>();
+        bindingList.add(new AbstractMap.SimpleEntry<>("name","name"));
         Ognl.getValue(bindingList, context, root);
 
         assertEquals("name", root.getName());
@@ -285,8 +285,8 @@ public class FormBindingTest extends BaseTest {
                 null, ICreate1.class, idClassMapper));
         Company root = new Company();
         root.setName("hi");
-        List<String> bindingList = new ArrayList<>();
-        bindingList.add("name=");
+        List<Map.Entry<String, Object>> bindingList = new ArrayList<>();
+        bindingList.add(new AbstractMap.SimpleEntry<>("name", null));
         Ognl.getValue(bindingList, context, root);
 
         assertEquals(null, root.getName());
@@ -331,15 +331,15 @@ public class FormBindingTest extends BaseTest {
         context.extend();
         context.setObjectConstructor(new EntityModelObjectConstructor(em,
                 null, EditEmployee.class, idClassMapper));
-        List<String> bindingList = new ArrayList<>();
-        bindingList.add("id=" + employee.getId());
-        bindingList.add(String.format("employeeParkings[%d].id.employeeId=%d", 0, employee.getId()));
-        bindingList.add(String.format("employeeParkings[%d].id.parkingId=%d", 0, parking1.getId()));
-        bindingList.add(String.format("employeeParkings[%d].parking.id=%d", 0, parking1.getId()));
+        List<Map.Entry<String, Object>> bindingList = new ArrayList<>();
+        bindingList.add(new AbstractMap.SimpleEntry<>("id", employee.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>(String.format("employeeParkings[%d].id.employeeId", 0), employee.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>(String.format("employeeParkings[%d].id.parkingId", 0), parking1.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>(String.format("employeeParkings[%d].parking.id", 0), parking1.getId()));
         //
-        bindingList.add(String.format("employeeParkings[%d].id.employeeId=%d", 1, employee.getId()));
-        bindingList.add(String.format("employeeParkings[%d].id.parkingId=%d", 1, parking2.getId()));
-        bindingList.add(String.format("employeeParkings[%d].parking.id=%d", 1, parking2.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>(String.format("employeeParkings[%d].id.employeeId", 1), employee.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>(String.format("employeeParkings[%d].id.parkingId", 1), parking2.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>(String.format("employeeParkings[%d].parking.id", 1), parking2.getId()));
 
         Employee root = Ognl.getValue(bindingList, context, Employee.class);
         assertEquals(2, root.getEmployeeParkings().size());

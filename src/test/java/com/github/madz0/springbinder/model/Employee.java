@@ -6,6 +6,7 @@ import java.util.Set;
 import javax.persistence.*;
 import javax.validation.Valid;
 
+import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.validation.ValidationError;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,5 +42,16 @@ public class Employee extends BaseModeId {
     public List<ValidationError> validate(Class<?> group) {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    public interface EmployeeParkingEdit extends BaseGroups.IEdit {
+        @Override
+        default Set<IProperty> getProperties() {
+            return editProps(Employee.class,
+                    model("employeeParkings",
+                    model("id", field("employeeId"), field("parkingId")),
+                    model("parking", field("id")),
+                    field("file")));
+        }
     }
 }

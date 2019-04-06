@@ -11,12 +11,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.method.annotation.ModelFactory;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-import javax.persistence.EntityGraph;
 import javax.persistence.EntityManager;
-import javax.persistence.Subgraph;
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.ParameterizedType;
@@ -24,11 +21,11 @@ import java.lang.reflect.Type;
 import java.net.URLDecoder;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgumentResolver {
     private EntityManager em;
     private IdClassMapper idClassMapper;
+
     public FormObjectBindingArgumentResolver(EntityManager em, IdClassMapper idClassMapper) {
         this.em = em;
         this.idClassMapper = idClassMapper;
@@ -52,7 +49,17 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
 
         if (value == null) {
             StringBuilder builder = getServeltData(request);
+            FormObject formObject = parameter.getParameterAnnotation(FormObject.class);
+            List<Map.Entry<String, Object>> entries = null;
             if (builder.length() > 0) {
+                builder.insert(0, '?');
+                Map<String, List<Map.Entry<String, Object>>> params = parsQuery(builder.toString(), name, formObject.fieldsContainRootName());
+                entries = params.get(name);
+            } else {
+                entries = new ArrayList<>();
+            }
+            addMultiParFiles(request, entries);
+            if (entries.size() > 0) {
                 mavContainer.setBinding(parameter.getParameterName(), true);
                 Type type = parameter.getParameterType();
                 OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
@@ -65,11 +72,8 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     cls = (Class) type;
                     context.extend();
                 }
-                FormObject formObject = parameter.getParameterAnnotation(FormObject.class);
                 context.setObjectConstructor(new EntityModelObjectConstructor(em, createEntityGraph(em, cls, formObject.entityGraph()), formObject.group(), idClassMapper));
-                builder.insert(0, '?');
-                Map<String, List<String>> params = parsQuery(builder.toString(), name, formObject.fieldsContainRootName());
-                value = Ognl.getValue(params.get(name), context, cls);
+                value = Ognl.getValue(entries, context, cls);
                 binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
                 validateIfApplicable(binder, parameter);
                 bindingResult = binder.getBindingResult();
@@ -79,9 +83,9 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
         return finalizeBinding(parameter, mavContainer, webRequest, binderFactory, name, bindingResult, value);
     }
 
-    private Map<String, List<String>> parsQuery(String path, String expectedRoot, Boolean fieldsContainRootName)
+    private Map<String, List<Map.Entry<String, Object>>> parsQuery(String path, String expectedRoot, Boolean fieldsContainRootName)
             throws UnsupportedEncodingException {
-        Map<String, List<String>> params = new HashMap<>();
+        Map<String, List<Map.Entry<String, Object>>> params = new LinkedHashMap<>();
         if (path == null || !path.startsWith("?")) {
             return null;
         }
@@ -115,7 +119,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     } else {
                         genIndex = notIndexedFixMap.get(key).incrementAndGet();
                     }
-                    key = key.replaceFirst("\\[\\]", "["+genIndex+"]");
+                    key = key.replaceFirst("\\[\\]", "[" + genIndex + "]");
                 }
 
                 if (expectedRoot != null && !fieldsContainRootName) {
@@ -128,41 +132,28 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 if (value == null) {
                     value = "";
                 }
-
+                Map.Entry<String, Object> valueEntry = null;
                 if (dotIdx == bracketIdx) {
                     keyParam = key;
                     params.put(keyParam, new ArrayList<>());
                 } else if (dotIdx != -1 && (bracketIdx == -1 || bracketIdx > dotIdx)) {
                     keyParam = key.substring(0, dotIdx);
-                    value = key.substring(dotIdx + 1) + "=" + value;
+                    valueEntry = new AbstractMap.SimpleImmutableEntry<>(key.substring(dotIdx + 1), value);
                 } else {
                     keyParam = key.substring(0, bracketIdx);
-                    value = key.substring(bracketIdx) + "=" + value;
+                    valueEntry = new AbstractMap.SimpleImmutableEntry<>(key.substring(bracketIdx), value);
                 }
 
-                List<String> values = params.get(keyParam);
+                List<Map.Entry<String, Object>> values = params.get(keyParam);
                 if (values == null) {
                     values = new ArrayList<>();
                     params.put(keyParam, values);
                 }
-                values.add(value);
+                values.add(valueEntry);
             } else {
-                params.put(pair, Arrays.asList(value));
+                params.put(pair, Arrays.asList(null));
             }
         }
         return params;
-    }
-
-    @Override
-    public boolean supportsReturnType(MethodParameter returnType) {
-        return true;
-    }
-
-    @Override
-    public void handleReturnValue(Object returnValue, MethodParameter returnType, ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws Exception {
-        if (returnValue != null) {
-            String name = ModelFactory.getNameForReturnValue(returnValue, returnType);
-            mavContainer.addAttribute(name, returnValue);
-        }
     }
 }

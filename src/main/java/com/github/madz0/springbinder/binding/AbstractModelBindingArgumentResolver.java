@@ -1,5 +1,7 @@
 package com.github.madz0.springbinder.binding;
 
+import com.github.madz0.springbinder.binding.rest.serialize.RestResultBody;
+import com.github.madz0.springbinder.binding.rest.serialize.RestResultFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.validation.BindException;
@@ -10,9 +12,12 @@ import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.bind.support.WebRequestDataBinder;
 import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.annotation.ModelFactory;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 import org.springframework.web.method.support.ModelAndViewContainer;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import javax.persistence.EntityGraph;
 import javax.persistence.EntityManager;
@@ -21,6 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -97,6 +103,15 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         return builder;
     }
 
+    protected void addMultiParFiles(HttpServletRequest request, List values) {
+        if (request instanceof MultipartHttpServletRequest) {
+            Map<String, MultipartFile> multipartFileMap = ((MultipartHttpServletRequest) request).getFileMap();
+            if (multipartFileMap != null) {
+                multipartFileMap.entrySet().forEach(e->values.add(e));
+            }
+        }
+    }
+
     public <T> EntityGraph<T> createEntityGraph(EntityManager em, Class<T> clazz, String... relations) {
         if (relations == null || relations.length == 0) {
             return null;
@@ -109,5 +124,20 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
                 root = root.addSubgraph(splitted[i]);
         });
         return graph;
+    }
+
+    @Override
+    public boolean supportsReturnType(MethodParameter returnType) {
+        return false;//RestResultBody.class.isAssignableFrom(returnType.getParameterType());
+    }
+
+    @Override
+    public void handleReturnValue(Object returnValue, MethodParameter returnType, ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws Exception {
+        if (returnValue instanceof RestResultFactory) {
+            RestResultFactory restResultBody = (RestResultFactory) returnValue;
+            mavContainer.setStatus(restResultBody.getStatus());
+            String name = ModelFactory.getNameForReturnValue(returnValue, returnType);
+            mavContainer.addAttribute(name, returnValue);
+        }
     }
 }
