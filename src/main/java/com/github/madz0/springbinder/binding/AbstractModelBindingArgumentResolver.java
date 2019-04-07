@@ -1,6 +1,7 @@
 package com.github.madz0.springbinder.binding;
 
 import com.github.madz0.springbinder.binding.rest.serialize.RestResultFactory;
+import ognl.OgnlRuntime;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.validation.BindException;
@@ -27,6 +28,7 @@ import javax.servlet.http.HttpServletRequestWrapper;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -143,5 +145,14 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
             String name = ModelFactory.getNameForReturnValue(returnValue, returnType);
             mavContainer.addAttribute(name, returnValue);
         }
+    }
+
+    public BindingResult validateEmptyRequest(MethodParameter parameter, WebDataBinderFactory binderFactory, NativeWebRequest webRequest) throws Exception {
+        Class pClass = parameter.getParameterType();
+        String parameterName = parameter.getParameterName();
+        Object value = OgnlRuntime.createProperObject(pClass, pClass.getComponentType());
+        WebDataBinder binder = binderFactory.createBinder(webRequest, value, parameterName);
+        validateIfApplicable(binder, parameter);
+        return binder.getBindingResult();
     }
 }

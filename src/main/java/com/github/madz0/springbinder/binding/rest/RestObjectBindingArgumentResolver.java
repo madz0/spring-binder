@@ -58,6 +58,9 @@ public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     BindUtils.updating.remove();
                 }
             }
+            else {
+                bindingResult = validateEmptyRequest(parameter, binderFactory, webRequest);
+            }
         }
 
         return finalizeBinding(parameter, mavContainer, webRequest, binderFactory, name, bindingResult, value);
