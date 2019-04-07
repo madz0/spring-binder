@@ -347,6 +347,49 @@ public class FormBindingTest extends BaseTest {
         assertEquals(2, root.getEmployeeParkings().size());
     }
 
+    @Test
+    public void clearingOneToManyTest() throws OgnlException {
+        City city = new City();
+        city.setName("Tehran");
+        city = cityRepository.save(city);
+        House house = new House();
+        house.setAddress("Karoon");
+        house.setCity(city);
+        house = houseRepository.save(house);
+        Company company = new Company();
+        company.setName("Your Company");
+        company.setCity(city);
+        Employee employee = new Employee();
+        employee.setCompany(company);
+        employee.setName("Gholi");
+        employee.setHouse(house);
+        employeeRepository.save(employee);
+
+        Parking parking1 = new Parking();
+        parking1.setName("parking1");
+        parkingRepository.save(parking1);
+        Parking parking2 = new Parking();
+        parking2.setName("parking2");
+        parkingRepository.save(parking2);
+
+        EmployeeParking employeeParking = new EmployeeParking();
+        employeeParking.setId(new EmployeeParkingId(employee.getId(), parking1.getId()));
+        employeeParking.setEmployee(employee);
+        employeeParking.setParking(parking1);
+
+        employee.setEmployeeParkings(new HashSet<>(Arrays.asList(employeeParking)));
+        employeeRepository.save(employee);
+        OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+        context.extend();
+        context.setObjectConstructor(new EntityModelObjectConstructor(em,
+                null, EditEmployee.class, idClassMapper));
+        List<Map.Entry<String, Object>> bindingList = new ArrayList<>();
+        bindingList.add(new AbstractMap.SimpleEntry<>("id", employee.getId()));
+        bindingList.add(new AbstractMap.SimpleEntry<>(String.format("employeeParkings[%d]", 0), ""));
+        Employee root = Ognl.getValue(bindingList, context, Employee.class);
+        assertEquals(0, root.getEmployeeParkings().size());
+    }
+
     public interface ICreate1 extends BaseGroups.ICreate {
         @Override
         default Set<IProperty> getProperties() {

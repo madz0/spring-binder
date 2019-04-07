@@ -70,7 +70,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
                 if (propertyObject instanceof List || propertyObject instanceof Set) {
                     Class<?> genericClazz = (Class<?>) parameterizedType.getActualTypeArguments()[0];
                     Collection dest = (Collection) propertyObject;
-                    if (node.getChildren().size() == 0) {
+                    if (node.getChildren().size() == 0 || (node.getContainsEmptyChildValue() && node.getChildren().size() == 1)) {
                         dest.clear();
                     } else {
                         Collection<MapNode> src = node.getChildren().values();
