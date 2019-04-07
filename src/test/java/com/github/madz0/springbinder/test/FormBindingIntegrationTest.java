@@ -139,4 +139,14 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
             assertEquals(f2.getName(), employeeParkingList.get(0).getNameFromFile());
         }
     }
+
+    @Test
+    public void emptyPostRequestTest() throws Exception {
+
+        MvcResult mvcResult = mockMvc.perform(post(BASE_URL + "create"))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+        String result = mvcResult.getResponse().getContentAsString();
+        assertTrue(result.contains("name"));
+    }
 }

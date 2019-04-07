@@ -5,6 +5,7 @@ import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.form.annotation.FormObject;
 import ognl.Ognl;
 import ognl.OgnlContext;
+import ognl.OgnlRuntime;
 import ognl.extended.DefaultMemberAccess;
 import org.springframework.core.MethodParameter;
 import org.springframework.validation.BindingResult;
@@ -48,7 +49,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
         }
 
         if (value == null) {
-            StringBuilder builder = getServeltData(request);
+            StringBuilder builder = getServletData(request);
             FormObject formObject = parameter.getParameterAnnotation(FormObject.class);
             List<Map.Entry<String, Object>> entries = null;
             if (builder.length() > 0) {
@@ -74,6 +75,13 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 }
                 context.setObjectConstructor(new EntityModelObjectConstructor(em, createEntityGraph(em, cls, formObject.entityGraph()), formObject.group(), idClassMapper));
                 value = Ognl.getValue(entries, context, cls);
+                binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
+                validateIfApplicable(binder, parameter);
+                bindingResult = binder.getBindingResult();
+            }
+            else {
+                Class pClass = parameter.getParameterType();
+                value = OgnlRuntime.createProperObject(pClass, pClass.getComponentType());
                 binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
                 validateIfApplicable(binder, parameter);
                 bindingResult = binder.getBindingResult();

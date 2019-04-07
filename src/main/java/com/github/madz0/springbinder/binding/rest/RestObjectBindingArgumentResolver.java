@@ -41,7 +41,7 @@ public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgum
         }
 
         if(value == null) {
-            StringBuilder builder = getServeltData(request);
+            StringBuilder builder = getServletData(request);
             if(builder.length() > 0) {
                 RestObject restObject = parameter.getParameterAnnotation(RestObject.class);
                 try {

@@ -1,6 +1,5 @@
 package com.github.madz0.springbinder.binding;
 
-import com.github.madz0.springbinder.binding.rest.serialize.RestResultBody;
 import com.github.madz0.springbinder.binding.rest.serialize.RestResultFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -22,7 +21,9 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 import javax.persistence.EntityGraph;
 import javax.persistence.EntityManager;
 import javax.persistence.Subgraph;
+import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -91,7 +92,7 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         return value;
     }
 
-    protected StringBuilder getServeltData(HttpServletRequest request) throws IOException {
+    protected StringBuilder getServletData(HttpServletRequest request) throws IOException {
         StringBuilder builder = new StringBuilder();
         try (BufferedReader br = request.getReader()) {
             char[] readBytes = new char[1024];
@@ -103,11 +104,14 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         return builder;
     }
 
-    protected void addMultiParFiles(HttpServletRequest request, List values) {
+    protected void addMultiParFiles(ServletRequest request, List values) {
+        while (request instanceof HttpServletRequestWrapper) {
+            request = ((HttpServletRequestWrapper) request).getRequest();
+        }
         if (request instanceof MultipartHttpServletRequest) {
             Map<String, MultipartFile> multipartFileMap = ((MultipartHttpServletRequest) request).getFileMap();
             if (multipartFileMap != null) {
-                multipartFileMap.entrySet().forEach(e->values.add(e));
+                multipartFileMap.entrySet().forEach(e -> values.add(e));
             }
         }
     }

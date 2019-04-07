@@ -9,8 +9,11 @@ import lombok.AccessLevel;
 import lombok.Getter;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 public class RestResultFactory<T> {
@@ -24,19 +27,19 @@ public class RestResultFactory<T> {
     private String serviceErrorCause;
     private String errorMessage;
 
-    public static <T> RestResultBody okay(){
+    public static <T> RestResultBody okay() {
         RestResultFactory<T> body = new RestResultFactory<>();
         body.status = HttpStatus.OK;
         return new RestResultBody(body);
     }
 
-    public static <T> RestResultBody created(){
+    public static <T> RestResultBody created() {
         RestResultFactory<T> body = new RestResultFactory<>();
         body.status = HttpStatus.CREATED;
         return new RestResultBody(body);
     }
 
-    public static <T> RestResultBody okay(T result, Class<? extends BaseGroups.IGroup> group){
+    public static <T> RestResultBody okay(T result, Class<? extends BaseGroups.IGroup> group) {
         RestResultFactory<T> body = new RestResultFactory<>();
         body.status = HttpStatus.OK;
         body.result = result;
@@ -45,7 +48,7 @@ public class RestResultFactory<T> {
         return new RestResultBody(body);
     }
 
-    public static <T> RestResultBody error(List<ValidationError> errors){
+    public static <T> RestResultBody error(List<ValidationError> errors) {
         RestResultFactory<T> body = new RestResultFactory<>();
         body.status = HttpStatus.NOT_ACCEPTABLE;
         body.errors = errors;
@@ -87,10 +90,28 @@ public class RestResultFactory<T> {
         return new RestResultBody(body);
     }
 
+    public static <T> RestResultBody badRequest(List<ValidationError> errors) {
+        RestResultFactory<T> body = new RestResultFactory<>();
+        body.status = HttpStatus.BAD_REQUEST;
+        body.errors = errors;
+        return new RestResultBody(body);
+    }
+
+    public static <T> RestResultBody badRequest(BindingResult bindingResult) {
+        RestResultFactory<T> body = new RestResultFactory<>();
+        body.status = HttpStatus.BAD_REQUEST;
+        body.errors = getValidationErrorsOf(bindingResult);
+        return new RestResultBody(body);
+    }
+
     public static <T> RestResultBody status(HttpStatus status, String errorMessage) {
         RestResultFactory<T> body = new RestResultFactory<>();
         body.status = status;
         body.errorMessage = errorMessage;
         return new RestResultBody(body);
+    }
+
+    private static List<ValidationError> getValidationErrorsOf(BindingResult bindingResult) {
+        return bindingResult.getAllErrors().stream().map(e -> new ValidationError((e instanceof FieldError) ? ((FieldError) e).getField() : e.getObjectName(), e.getDefaultMessage(), (e instanceof FieldError) ? ((FieldError) e).getRejectedValue() : null)).collect(Collectors.toList());
     }
 }

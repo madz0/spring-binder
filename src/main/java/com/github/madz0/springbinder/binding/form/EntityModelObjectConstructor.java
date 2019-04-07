@@ -14,6 +14,7 @@ import org.hibernate.proxy.HibernateProxy;
 import org.springframework.util.StringUtils;
 
 import javax.persistence.*;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -37,7 +38,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
     }
 
     @Override
-    public Object createObject(Class<?> cls, Class<?> componentType, MapNode node) throws InstantiationException, IllegalAccessException {
+    public Object createObject(Class<?> cls, Class<?> componentType, MapNode node) throws InstantiationException, IllegalAccessException, InvocationTargetException {
         if (IBaseModelId.class.isAssignableFrom(cls) && node != null && node.getIsRoot()) {
             Object id = getId(node, getIdClass(cls));
             if (id != null) {

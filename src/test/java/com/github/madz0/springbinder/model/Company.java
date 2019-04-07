@@ -30,8 +30,12 @@ public class Company extends BaseModeId {
     }
 
     @Column
-    @NotNull
+    @NotNull(groups = TestGroup.class)
     private String name;
+
+    @Column
+    @NotNull
+    private String name2;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private City city;
@@ -50,5 +54,9 @@ public class Company extends BaseModeId {
     public List<ValidationError> validate(Class<?> group) {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    public interface TestGroup extends BaseGroups.IGroup {
+
     }
 }
