@@ -60,6 +60,7 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         house = houseRepository.save(house);
         List<String> bindingList = new ArrayList<>();
         bindingList.add("name=Company1");
+        bindingList.add("name2=Company2");
         bindingList.add("city.id=" + city.getId());
         bindingList.add("employees[].name=Mohammad1");
         bindingList.add("employees[].name=Mohammad2");
@@ -68,11 +69,11 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         MvcResult mvcResult = mockMvc.perform(post(BASE_URL + "create")
                 .content(String.join("&", bindingList))
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isCreated())
                 .andReturn();
         List<String> expressionsCaptureToStr = expressionsCapture.stream().map(x -> x.getKey() + "=" + x.getValue()).collect(Collectors.toList());
         assertTrue(String.join("", expressionsCaptureToStr).contains("employees[0].name=Mohammad"));
         assertTrue(String.join("", expressionsCaptureToStr).contains("employees[1].name=Mohammad"));
-        assertTrue(mvcResult.getResponse().getContentAsString().contains("OK"));
     }
 
     @Test
@@ -87,6 +88,7 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         house = houseRepository.save(house);
         Company company = new Company();
         company.setName("Your Company");
+        company.setName2("Your Company2");
         company.setCity(city);
         companyRepository.save(company);
 

@@ -34,7 +34,7 @@ public class Company extends BaseModeId {
     private String name;
 
     @Column
-    @NotNull
+    @NotNull(groups = TestGroup2.class)
     private String name2;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
@@ -57,6 +57,10 @@ public class Company extends BaseModeId {
     }
 
     public interface TestGroup extends BaseGroups.IGroup {
+
+    }
+
+    public interface TestGroup2 extends BaseGroups.IGroup {
 
     }
 }
