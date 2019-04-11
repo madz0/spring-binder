@@ -1,6 +1,7 @@
 package com.github.madz0.springbinder.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.madz0.springbinder.binding.AbstractModelBindingArgumentResolver;
 import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.form.FormObjectBindingArgumentResolver;
 import com.github.madz0.springbinder.binding.rest.RestObjectBindingArgumentResolver;
@@ -11,8 +12,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import java.util.List;
 
@@ -25,6 +28,14 @@ public class Config implements WebMvcConfigurer {
     ApplicationContext context;
     @Autowired(required = false)
     IdClassMapper idClassMapper;
+    private AbstractModelBindingArgumentResolver formObjectModelBindingArgumentResolver;
+    private AbstractModelBindingArgumentResolver restobjectModelBindingArgumentResolver;
+
+    @PostConstruct
+    public void postConstruct() {
+        formObjectModelBindingArgumentResolver = new FormObjectBindingArgumentResolver(entityManager, idClassMapper);
+        restobjectModelBindingArgumentResolver = new RestObjectBindingArgumentResolver(getObjectmapper(), entityManager);
+    }
 
     @Bean
     ObjectMapper getObjectmapper() {
@@ -33,7 +44,13 @@ public class Config implements WebMvcConfigurer {
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(new FormObjectBindingArgumentResolver(entityManager, idClassMapper));
-        resolvers.add(new RestObjectBindingArgumentResolver(getObjectmapper(), entityManager));
+        resolvers.add(formObjectModelBindingArgumentResolver);
+        resolvers.add(restobjectModelBindingArgumentResolver);
+    }
+
+    @Override
+    public void addReturnValueHandlers(List<HandlerMethodReturnValueHandler> handlers) {
+        handlers.add(formObjectModelBindingArgumentResolver);
+        handlers.add(restobjectModelBindingArgumentResolver);
     }
 }

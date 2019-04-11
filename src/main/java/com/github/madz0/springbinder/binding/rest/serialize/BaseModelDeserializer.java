@@ -58,7 +58,7 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
     @SneakyThrows
     @SuppressWarnings("unchecked")
     public T deserialize(JsonParser p, DeserializationContext ctxt) {
-        if (BindUtils.group.get() == null) {
+        if (BindUtils.group.get() == null || BindUtils.bindAsDto.get()) {
             return (T) deserializer.deserialize(p, ctxt);
         }
         JsonNode root = p.getCodec().readTree(p);

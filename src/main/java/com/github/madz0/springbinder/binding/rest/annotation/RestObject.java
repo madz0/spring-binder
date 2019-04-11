@@ -15,4 +15,5 @@ public @interface RestObject {
     String[] entityGraph() default {};
     Class<? extends BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
     boolean isUpdating() default false;
+    boolean bindAsDto() default false;
 }

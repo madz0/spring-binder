@@ -13,8 +13,7 @@ import org.springframework.beans.BeanWrapperImpl;
 import javax.persistence.EntityGraph;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Root;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.*;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public class BindUtils {
@@ -23,6 +22,7 @@ public class BindUtils {
     public static final ThreadLocal<Boolean> updating = ThreadLocal.withInitial(() -> false);
     private static final ThreadLocal<Stack<Set<IProperty>>> currentProperties = ThreadLocal.withInitial(Stack::new);
     public static final ThreadLocal<EntityGraph<?>> entityGraph = ThreadLocal.withInitial(() -> null);
+    public static final ThreadLocal<Boolean> bindAsDto = ThreadLocal.withInitial(() -> false);
 
     public interface RunnableWithException {
         void run() throws Throwable;
@@ -89,7 +89,7 @@ public class BindUtils {
     public static synchronized Set<IProperty> getPropertiesFromGroup(Class<? extends BaseGroups.IGroup> group) {
         if (!groupMap.containsKey(group)) {
             ProxyFactory proxyFactory = new ProxyFactory();
-            proxyFactory.setInterfaces(new Class[] {group});
+            proxyFactory.setInterfaces(new Class[]{group});
             BaseGroups.IGroup target = (BaseGroups.IGroup) proxyFactory.create(null, null);
             groupMap.put(group, target.getProperties());
         }

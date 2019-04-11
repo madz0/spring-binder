@@ -27,19 +27,25 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
     private EntityGraph<?> graph;
     private IdClassMapper idClassMapper;
     private Stack<Set<IProperty>> groupStack = new Stack<>();
+    private Boolean bindAsDto;
 
-    public EntityModelObjectConstructor(EntityManager entityManager, EntityGraph<?> graph, Class<? extends BaseGroups.IGroup> group, IdClassMapper idClassMapper) {
+    public EntityModelObjectConstructor(EntityManager entityManager,
+                                        EntityGraph<?> graph,
+                                        Class<? extends BaseGroups.IGroup> group,
+                                        IdClassMapper idClassMapper,
+                                        Boolean bindAsDto) {
         this.entityManager = entityManager;
         this.graph = graph;
         if (group != BaseGroups.IGroup.class) {
             groupStack.push(BindUtils.getPropertiesFromGroup(group));
         }
         this.idClassMapper = idClassMapper;
+        this.bindAsDto = bindAsDto;
     }
 
     @Override
     public Object createObject(Class<?> cls, Class<?> componentType, MapNode node) throws InstantiationException, IllegalAccessException, InvocationTargetException {
-        if (IBaseModelId.class.isAssignableFrom(cls) && node != null && node.getIsRoot()) {
+        if (!bindAsDto && IBaseModelId.class.isAssignableFrom(cls) && node != null && node.getIsRoot()) {
             Object id = getId(node, getIdClass(cls));
             if (id != null) {
                 if (graph != null) {
@@ -63,7 +69,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
             }
         }
 
-        if (propertyDescriptor != null && root instanceof IBaseModelId) {
+        if (!bindAsDto && propertyDescriptor != null && root instanceof IBaseModelId) {
             if (node.isCollection()) {
                 Type genericType = propertyDescriptor.getReadMethod().getGenericReturnType();
                 ParameterizedType parameterizedType = (ParameterizedType) genericType; //If not let it throws exception
@@ -244,7 +250,6 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
             }
             return propertyObject;
         }
-
         return pushPopPropFields(currentProp, () -> super.processObjectForGet(context, root, propertyDescriptor, propertyObject, node));
     }
 

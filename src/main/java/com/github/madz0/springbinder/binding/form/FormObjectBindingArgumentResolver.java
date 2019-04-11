@@ -72,7 +72,9 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     cls = (Class) type;
                     context.extend();
                 }
-                context.setObjectConstructor(new EntityModelObjectConstructor(em, createEntityGraph(em, cls, formObject.entityGraph()), formObject.group(), idClassMapper));
+                context.setObjectConstructor(new EntityModelObjectConstructor(em,
+                        createEntityGraph(em, cls, formObject.entityGraph()),
+                        formObject.group(), idClassMapper, formObject.bindAsDto()));
                 value = Ognl.getValue(entries, context, cls);
                 binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
                 validateIfApplicable(binder, parameter);

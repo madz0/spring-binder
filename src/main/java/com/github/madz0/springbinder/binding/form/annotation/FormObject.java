@@ -14,4 +14,5 @@ public @interface FormObject {
     String[] entityGraph() default {};
     Class<? extends BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
     boolean fieldsContainRootName() default false;
+    boolean bindAsDto() default false;
 }

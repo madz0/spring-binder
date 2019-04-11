@@ -48,6 +48,7 @@ public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     BindUtils.group.set(restObject.group());
                     BindUtils.updating.set(restObject.isUpdating());
                     BindUtils.entityGraph.set(createEntityGraph(entityManager, parameter.getParameterType(), restObject.entityGraph()));
+                    BindUtils.bindAsDto.set(restObject.bindAsDto());
                     value = mapper.readValue(builder.toString(), parameter.getParameterType());
                     binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
                     validateIfApplicable(binder, parameter);
@@ -56,6 +57,8 @@ public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 finally {
                     BindUtils.group.remove();
                     BindUtils.updating.remove();
+                    BindUtils.entityGraph.remove();
+                    BindUtils.bindAsDto.remove();
                 }
             }
             else {
