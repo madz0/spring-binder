@@ -475,7 +475,9 @@ public class FormBindingTest extends BaseTest {
         default Set<IProperty> getProperties() {
             return createProps(Company.class, field("name"),
                     model("employees", field("name"),
-                            model("house", field("id"), field("address")),
+                            model("house", field("id"),
+                                    field("address"),
+                                    model("city", field("name"))),
                             model("cars", field("name"),
                                     field("date"),
                                     field("time"),
