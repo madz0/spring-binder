@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -390,6 +391,32 @@ public class FormBindingTest extends BaseTest {
         assertEquals(0, root.getEmployeeParkings().size());
     }
 
+    @Test
+    public void bindingAsDtoTest() throws OgnlException {
+        City city = new City();
+        city.setName("Tehran");
+        city = cityRepository.save(city);
+        Company company = new Company();
+        company.setName("Your Company");
+        company.setCity(city);
+
+        OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
+        context.extend();
+        context.setObjectConstructor(new EntityModelObjectConstructor(em,
+                null, BindAsDtoTestGroup.class, idClassMapper, true));
+        List<Map.Entry<String, Object>> bindingList = new ArrayList<>();
+        bindingList.add(new AbstractMap.SimpleEntry<>(String.format("employees[%d].house.address", 0), "testtest"));
+        bindingList.add(new AbstractMap.SimpleEntry<>(String.format("employees[%d].house.city.name", 0), "testCity"));
+        bindingList.add(new AbstractMap.SimpleEntry<>("name", "test"));
+        bindingList.add(new AbstractMap.SimpleEntry<>(String.format("employees[%d].house.address", 1), "testtest2"));
+        Company root = Ognl.getValue(bindingList, context, Company.class);
+        assertEquals(2, root.getEmployees().size());
+        assertEquals("test", root.getName());
+        List<String> houseAddressList = root.getEmployees().stream().map(Employee::getHouse).map(House::getAddress).collect(Collectors.toList());
+        assertTrue(houseAddressList.contains("testtest"));
+        assertTrue(houseAddressList.contains("testtest2"));
+    }
+
     public interface ICreate1 extends BaseGroups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
@@ -440,6 +467,21 @@ public class FormBindingTest extends BaseTest {
             return editProps(Employee.class, model("employeeParkings",
                     model("id", field("employeeId"), field("parkingId")),
                     model("parking", field("id"))));
+        }
+    }
+
+    public interface BindAsDtoTestGroup extends BaseGroups.ICreate {
+        @Override
+        default Set<IProperty> getProperties() {
+            return createProps(Company.class, field("name"),
+                    model("employees", field("name"),
+                            model("house", field("id"), field("address")),
+                            model("cars", field("name"),
+                                    field("date"),
+                                    field("time"),
+                                    field("model"),
+                                    model("manufacture", field("id")))),
+                    model("city", field("id")));
         }
     }
 }
