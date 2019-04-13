@@ -21,8 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class FormBindingTest extends BaseTest {
 
@@ -415,6 +414,14 @@ public class FormBindingTest extends BaseTest {
         List<String> houseAddressList = root.getEmployees().stream().map(Employee::getHouse).map(House::getAddress).collect(Collectors.toList());
         assertTrue(houseAddressList.contains("testtest"));
         assertTrue(houseAddressList.contains("testtest2"));
+    }
+
+    @Test
+    public void javaTimesMappingJpaTest() {
+        City city = new City();
+        city.setName("Tehran");
+        city = cityRepository.saveAndFlush(city);
+        assertNotNull(city.getCreatedDate());
     }
 
     public interface ICreate1 extends BaseGroups.ICreate {

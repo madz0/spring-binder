@@ -1,25 +1,30 @@
 package com.github.madz0.springbinder.model;
 
-import java.io.Serializable;
-import java.sql.Time;
-import java.util.Date;
-
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.MappedSuperclass;
-import javax.persistence.Version;
-
 import lombok.Getter;
 import lombok.Setter;
 
+import javax.persistence.*;
+import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 @Getter
 @Setter
+@EntityListeners(BaseModel.AuditListener.class)
 @MappedSuperclass
 public abstract class BaseModel implements IBaseModel<Long>, Serializable {
 
     @Version
     protected Long version;
+
+    @Column
+    private LocalDate createdDate;
+    @Column
+    private LocalDate modifiedDate;
+    @Column
+    private LocalTime createdTime;
+    @Column
+    private LocalTime modifiedTime;
 
     @Override
     public BaseModel getCreatedBy() {
@@ -36,23 +41,35 @@ public abstract class BaseModel implements IBaseModel<Long>, Serializable {
         return null;
     }
 
-    @Override
-    public Date getCreatedDate() {
-        return null;
-    }
+    public static class AuditListener {
+        @PrePersist
+        void onPrePersist(Object o) {
+            if (o instanceof BaseModel) {
+                LocalDate d = LocalDate.now();
+                BaseModel obj = (BaseModel) o;
+                if (obj.getCreatedDate() == null) {
+                    obj.setCreatedDate(d);
+                    obj.setModifiedDate(d);
+                }
+                if (obj.getCreatedTime() == null) {
+                    LocalTime t = LocalTime.now();
+                    obj.setCreatedTime(t);
+                    obj.setModifiedTime(t);
+                }
+            }
+        }
 
-    @Override
-    public Time getCreatedTime() {
-        return null;
-    }
-
-    @Override
-    public Date getModifiedDate() {
-        return null;
-    }
-
-    @Override
-    public Time getModifiedTime() {
-        return null;
+        @PreUpdate
+        void onPreUpdate(Object o) {
+            if (o instanceof BaseModel) {
+                BaseModel obj = (BaseModel) o;
+                if (obj.getModifiedDate() == null) {
+                    obj.setModifiedDate(LocalDate.now());
+                }
+                if (obj.getModifiedTime() == null) {
+                    obj.setModifiedTime(LocalTime.now());
+                }
+            }
+        }
     }
 }

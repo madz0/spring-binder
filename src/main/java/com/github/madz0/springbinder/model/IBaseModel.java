@@ -1,7 +1,7 @@
 package com.github.madz0.springbinder.model;
 
-import java.sql.Time;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 public interface IBaseModel<ID> extends IBaseModelAccess, IValidate {
     String VERSION_FIELD = "version";
@@ -9,16 +9,16 @@ public interface IBaseModel<ID> extends IBaseModelAccess, IValidate {
     void setVersion(Long version);
 
     String CREATED_DATE_FIELD = "createdDate";
-    Date getCreatedDate();
+    LocalDate getCreatedDate();
 
     String CREATED_TIME_FIELD = "createdTime";
-    Time getCreatedTime();
+    LocalTime getCreatedTime();
 
     String MODIFIED_DATE_FIELD = "modifiedDate";
-    Date getModifiedDate();
+    LocalDate getModifiedDate();
 
     String MODIFIED_TIME_FIELD = "modifiedTime";
-    Time getModifiedTime();
+    LocalTime getModifiedTime();
 
     String CREATED_BY_FIELD = "createdBy";
     IBaseModel<ID> getCreatedBy();
