@@ -11,6 +11,7 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 
 import javax.persistence.EntityGraph;
+import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Root;
 import java.lang.reflect.InvocationTargetException;
@@ -132,12 +133,17 @@ public class BindUtils {
         }
     }
 
-    public static <T, Y> Path<Y> findPath(Root<T> root, String field) {
+    public static <Y> Path<Y> findPath(Path<Y> path, String field) {
         String[] split = field.split("\\.");
-        Path<Y> result = null;
-        for (String s : split) {
-            result = (result == null ? root.get(s) : result.get(s));
+        Path<Y> result = path;
+        int i = 0;
+        for (; i < split.length - 1; i++) {
+            result = (result instanceof Join? (Join) result: (Root) result).join(split[i]);
         }
-        return result;
+        return result.get(split[i]);
+    }
+
+    public static <T, Y> Path<Y> findPath(Root<T> root, String field) {
+        return findPath((Path<Y>) root, field);
     }
 }
