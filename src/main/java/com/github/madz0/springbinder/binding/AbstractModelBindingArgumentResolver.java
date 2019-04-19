@@ -33,6 +33,12 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 public abstract class AbstractModelBindingArgumentResolver implements HandlerMethodArgumentResolver, HandlerMethodReturnValueHandler {
+    protected Map<String, EntityManager> emMap;
+    protected AbstractModelBindingArgumentResolver(Map<String, EntityManager> emMap) {
+        this.emMap = emMap;
+        this.emMap.putIfAbsent(DefaultEntityManagerBeanNameProvider.DEFAULT_NAME, this.emMap.entrySet().iterator().next().getValue());
+    }
+
     protected boolean isBindExceptionRequired(MethodParameter parameter) {
         int i = parameter.getParameterIndex();
         Class<?>[] paramTypes = parameter.getExecutable().getParameterTypes();

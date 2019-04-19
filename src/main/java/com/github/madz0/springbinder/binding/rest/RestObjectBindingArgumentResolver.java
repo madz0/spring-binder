@@ -3,6 +3,7 @@ package com.github.madz0.springbinder.binding.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.madz0.springbinder.binding.AbstractModelBindingArgumentResolver;
 import com.github.madz0.springbinder.binding.BindUtils;
+import com.github.madz0.springbinder.binding.DefaultEntityManagerBeanNameProvider;
 import com.github.madz0.springbinder.binding.rest.annotation.RestObject;
 import org.springframework.core.MethodParameter;
 import org.springframework.validation.BindingResult;
@@ -13,15 +14,15 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgumentResolver {
 
-    ObjectMapper mapper;
-    EntityManager entityManager;
+    private ObjectMapper mapper;
 
-    public RestObjectBindingArgumentResolver(ObjectMapper mapper, EntityManager entityManager) {
+    public RestObjectBindingArgumentResolver(Map<String, EntityManager> emMap, ObjectMapper mapper) {
+        super(emMap);
         this.mapper = mapper;
-        this.entityManager = entityManager;
     }
 
     @Override
@@ -40,28 +41,27 @@ public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgum
             value = mavContainer.getModel().get(name);
         }
 
-        if(value == null) {
+        if (value == null) {
             StringBuilder builder = getServletData(request);
-            if(builder.length() > 0) {
+            if (builder.length() > 0) {
                 RestObject restObject = parameter.getParameterAnnotation(RestObject.class);
                 try {
+                    EntityManager em = emMap.get(restObject.entityManagerBean());
                     BindUtils.group.set(restObject.group());
                     BindUtils.updating.set(restObject.isUpdating());
-                    BindUtils.entityGraph.set(createEntityGraph(entityManager, parameter.getParameterType(), restObject.entityGraph()));
+                    BindUtils.entityGraph.set(createEntityGraph(em, parameter.getParameterType(), restObject.entityGraph()));
                     BindUtils.bindAsDto.set(restObject.bindAsDto());
                     value = mapper.readValue(builder.toString(), parameter.getParameterType());
                     binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
                     validateIfApplicable(binder, parameter);
                     bindingResult = binder.getBindingResult();
-                }
-                finally {
+                } finally {
                     BindUtils.group.remove();
                     BindUtils.updating.remove();
                     BindUtils.entityGraph.remove();
                     BindUtils.bindAsDto.remove();
                 }
-            }
-            else {
+            } else {
                 bindingResult = validateEmptyRequest(parameter, binderFactory, webRequest);
             }
         }

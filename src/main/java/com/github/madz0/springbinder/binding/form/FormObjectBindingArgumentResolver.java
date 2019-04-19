@@ -1,6 +1,7 @@
 package com.github.madz0.springbinder.binding.form;
 
 import com.github.madz0.springbinder.binding.AbstractModelBindingArgumentResolver;
+import com.github.madz0.springbinder.binding.DefaultEntityManagerBeanNameProvider;
 import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.form.annotation.FormObject;
 import ognl.Ognl;
@@ -23,11 +24,11 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgumentResolver {
-    private EntityManager em;
     private IdClassMapper idClassMapper;
 
-    public FormObjectBindingArgumentResolver(EntityManager em, IdClassMapper idClassMapper) {
-        this.em = em;
+    public FormObjectBindingArgumentResolver(Map<String, EntityManager> emMap,
+                                             IdClassMapper idClassMapper) {
+        super(emMap);
         this.idClassMapper = idClassMapper;
     }
 
@@ -59,7 +60,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 entries = new ArrayList<>();
             }
             addMultiParFiles(request, entries);
-            if (entries.size() > 0) {
+            if (entries != null && entries.size() > 0) {
                 mavContainer.setBinding(parameter.getParameterName(), true);
                 Type type = parameter.getParameterType();
                 OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
@@ -72,6 +73,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     cls = (Class) type;
                     context.extend();
                 }
+                EntityManager em = emMap.get(formObject.entityManagerBean());
                 context.setObjectConstructor(new EntityModelObjectConstructor(em,
                         createEntityGraph(em, cls, formObject.entityGraph()),
                         formObject.group(), idClassMapper, formObject.bindAsDto()));
@@ -148,14 +150,10 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     valueEntry = new AbstractMap.SimpleImmutableEntry<>(key.substring(bracketIdx), value);
                 }
 
-                List<Map.Entry<String, Object>> values = params.get(keyParam);
-                if (values == null) {
-                    values = new ArrayList<>();
-                    params.put(keyParam, values);
-                }
+                List<Map.Entry<String, Object>> values = params.computeIfAbsent(keyParam, k -> new ArrayList<>());
                 values.add(valueEntry);
             } else {
-                params.put(pair, Arrays.asList(null));
+                params.put(pair, Collections.emptyList());
             }
         }
         return params;

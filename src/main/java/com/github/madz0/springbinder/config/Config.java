@@ -18,23 +18,25 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 @EnableAutoConfiguration
 public class Config implements WebMvcConfigurer {
+
     @Autowired
-    EntityManager entityManager;
+    Map<String, EntityManager> entityManagerMap;
     @Autowired
     ApplicationContext context;
     @Autowired(required = false)
     IdClassMapper idClassMapper;
     private AbstractModelBindingArgumentResolver formObjectModelBindingArgumentResolver;
-    private AbstractModelBindingArgumentResolver restobjectModelBindingArgumentResolver;
+    private AbstractModelBindingArgumentResolver restObjectModelBindingArgumentResolver;
 
     @PostConstruct
     public void postConstruct() {
-        formObjectModelBindingArgumentResolver = new FormObjectBindingArgumentResolver(entityManager, idClassMapper);
-        restobjectModelBindingArgumentResolver = new RestObjectBindingArgumentResolver(getObjectmapper(), entityManager);
+        formObjectModelBindingArgumentResolver = new FormObjectBindingArgumentResolver(entityManagerMap, idClassMapper);
+        restObjectModelBindingArgumentResolver = new RestObjectBindingArgumentResolver(entityManagerMap, getObjectmapper());
     }
 
     @Bean
@@ -45,12 +47,12 @@ public class Config implements WebMvcConfigurer {
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(formObjectModelBindingArgumentResolver);
-        resolvers.add(restobjectModelBindingArgumentResolver);
+        resolvers.add(restObjectModelBindingArgumentResolver);
     }
 
     @Override
     public void addReturnValueHandlers(List<HandlerMethodReturnValueHandler> handlers) {
         handlers.add(formObjectModelBindingArgumentResolver);
-        handlers.add(restobjectModelBindingArgumentResolver);
+        handlers.add(restObjectModelBindingArgumentResolver);
     }
 }
