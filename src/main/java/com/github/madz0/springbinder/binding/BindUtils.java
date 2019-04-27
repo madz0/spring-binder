@@ -11,6 +11,7 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 
 import javax.persistence.EntityGraph;
+import javax.persistence.criteria.Fetch;
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Root;
@@ -133,17 +134,29 @@ public class BindUtils {
         }
     }
 
-    public static <Y> Path<Y> findPath(Path<Y> path, String field) {
+    public static <Y> Path<Y> findPath(Path<Y> path, String field, Boolean isFetch) {
         String[] split = field.split("\\.");
         Path<Y> result = path;
         int i = 0;
         for (; i < split.length - 1; i++) {
-            result = (result instanceof Join? (Join) result: (Root) result).join(split[i]);
+            if (!isFetch) {
+                result = (result instanceof Join ? (Join) result : (Root) result).join(split[i]);
+            } else {
+                result = (Path<Y>) (result instanceof Fetch ? (Fetch) result : (Root) result).fetch(split[i]);
+            }
         }
         return result.get(split[i]);
     }
 
     public static <T, Y> Path<Y> findPath(Root<T> root, String field) {
-        return findPath((Path<Y>) root, field);
+        return findPath((Path<Y>) root, field, false);
+    }
+
+    public static <T, Y> Path<Y> findPathFetch(Root<T> root, String field) {
+        return findPath((Path<Y>) root, field, true);
+    }
+
+    public static <Y> Path<Y> findPathFetch(Path<Y> path, String field) {
+        return findPath(path, field, true);
     }
 }
