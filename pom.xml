@@ -6,7 +6,7 @@
 
     <groupId>com.github.madz0</groupId>
     <artifactId>spring-binder</artifactId>
-    <version>3.1-SNAPSHOT</version>
+    <version>3.2-SNAPSHOT</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>

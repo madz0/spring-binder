@@ -15,9 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -151,4 +149,15 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         String result = mvcResult.getResponse().getContentAsString();
         assertTrue(result.contains("name"));
     }
+
+    @Test
+    public void emptyPostRequest2Test() throws Exception {
+
+        MvcResult mvcResult = mockMvc.perform(post(BASE_URL + "create"))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+        String result = mvcResult.getResponse().getContentAsString();
+        assertTrue(result.contains("name"));
+    }
+
 }

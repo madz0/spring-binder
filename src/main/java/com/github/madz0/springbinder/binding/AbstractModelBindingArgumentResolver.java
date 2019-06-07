@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 
 public abstract class AbstractModelBindingArgumentResolver implements HandlerMethodArgumentResolver, HandlerMethodReturnValueHandler {
     protected Map<String, EntityManager> emMap;
+
     protected AbstractModelBindingArgumentResolver(Map<String, EntityManager> emMap) {
         this.emMap = emMap;
         this.emMap.putIfAbsent(DefaultEntityManagerBeanNameProvider.DEFAULT_NAME, this.emMap.entrySet().iterator().next().getValue());
@@ -101,11 +102,13 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
 
     protected StringBuilder getServletData(HttpServletRequest request) throws IOException {
         StringBuilder builder = new StringBuilder();
-        try (BufferedReader br = request.getReader()) {
-            char[] readBytes = new char[1024];
-            int readSize;
-            while ((readSize = br.read(readBytes)) != -1) {
-                builder.append(new String(readBytes, 0, readSize));
+        if (request.getContentLength() > 0) {
+            try (BufferedReader br = request.getReader()) {
+                char[] readBytes = new char[1024];
+                int readSize;
+                while ((readSize = br.read(readBytes)) != -1) {
+                    builder.append(new String(readBytes, 0, readSize));
+                }
             }
         }
         return builder;
