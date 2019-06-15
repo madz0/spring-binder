@@ -49,14 +49,25 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
         }
 
         if (value == null) {
-            StringBuilder builder = getServletData(request);
+            Object ret = getServletData(request);
             FormObject formObject = parameter.getParameterAnnotation(FormObject.class);
             List<Map.Entry<String, Object>> entries = null;
-            if (builder.length() > 0) {
-                builder.insert(0, '?');
-                Map<String, List<Map.Entry<String, Object>>> params = parsQuery(builder.toString(), name, formObject.fieldsContainRootName());
-                entries = params.get(name);
-            } else {
+            if ((ret instanceof StringBuilder)) {
+                StringBuilder builder = (StringBuilder) ret;
+                if (builder.length() > 0) {
+                    builder.insert(0, '?');
+                    Map<String, List<Map.Entry<String, Object>>> params = parsQuery(builder.toString(), name, formObject.fieldsContainRootName());
+                    entries = params.get(name);
+                }
+            } else if (ret instanceof Map) {
+                Map map = (Map) ret;
+                if (map.size() > 0) {
+                    Map<String, List<Map.Entry<String, Object>>> params = parsQuery(map, name, formObject.fieldsContainRootName());
+                    entries = params.get(name);
+                }
+            }
+
+            if (entries == null) {
                 entries = new ArrayList<>();
             }
             addMultiParFiles(request, entries);
@@ -154,6 +165,42 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 values.add(valueEntry);
             } else {
                 params.put(pair, Collections.emptyList());
+            }
+        }
+        return params;
+    }
+
+    private Map<String, List<Map.Entry<String, Object>>> parsQuery(Map<String, String[]> servletParams, String expectedRoot, Boolean fieldsContainRootName)
+            throws UnsupportedEncodingException {
+        Map<String, List<Map.Entry<String, Object>>> params = new LinkedHashMap<>();
+        Map<String, AtomicInteger> notIndexedFixMap = new HashMap<>();
+
+        for (Map.Entry<String, String[]> pair : servletParams.entrySet()) {
+            String key = pair.getKey();
+            if (key.startsWith("_")) {
+                continue;
+            }
+            boolean multiSelect = false;
+            //Fix multi select issue
+            if (key.contains("[]")) {
+                multiSelect = true;
+                key = key.substring(0, key.length() - 2);
+            }
+            if (expectedRoot != null && !fieldsContainRootName) {
+                key = expectedRoot + "." + key;
+            }
+            final int bracketIdx = key.indexOf("[");
+            final int dotIdx = key.indexOf(".");
+            final int finalIdx = dotIdx == bracketIdx ? -1 :
+                    dotIdx != -1 && (bracketIdx == -1 || bracketIdx > dotIdx) ? dotIdx : bracketIdx;
+            int genIndex = 0;
+            final List<Map.Entry<String, Object>> values = params.computeIfAbsent(finalIdx == -1 ? key : key.substring(0, finalIdx), x -> new ArrayList<>());
+            for (String value : pair.getValue()) {
+                String finalKey = key;
+                if (multiSelect) {
+                    finalKey += "[" + (genIndex++) + "]";
+                }
+                values.add(new AbstractMap.SimpleImmutableEntry<>(finalKey.substring(finalIdx + 1), value));
             }
         }
         return params;

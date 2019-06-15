@@ -1,6 +1,7 @@
 package com.github.madz0.springbinder.service;
 
 import com.github.madz0.springbinder.model.Company;
+import com.github.madz0.springbinder.model.dto.SomeDto;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,4 +16,6 @@ public interface CompanyService {
 	Object list();
 	@RequestMapping("/update")
 	Object update(Company company, BindingResult bindingResult);
+	@RequestMapping("/dto")
+	Object dto(SomeDto someDto, BindingResult bindingResult);
 }

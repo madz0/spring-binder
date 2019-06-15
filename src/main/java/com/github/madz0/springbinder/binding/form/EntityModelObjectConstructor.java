@@ -241,9 +241,9 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
                 pushPopPropFields((IModelProperty) currentProp, () -> {
                     try {
                         Ognl.getValue(node, contextFinal, finalObj);
+                        return null;
                     } catch (OgnlException e) {
                         log.error("", e);
-                    } finally {
                         return null;
                     }
                 });

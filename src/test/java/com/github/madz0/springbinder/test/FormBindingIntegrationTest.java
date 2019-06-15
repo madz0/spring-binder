@@ -1,6 +1,7 @@
 package com.github.madz0.springbinder.test;
 
 import com.github.madz0.springbinder.model.*;
+import com.github.madz0.springbinder.model.dto.SomeDto;
 import com.github.madz0.springbinder.repository.*;
 import mockit.Invocation;
 import mockit.Mock;
@@ -160,4 +161,27 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         assertTrue(result.contains("name"));
     }
 
+    @Test
+    public void dtoBindTest() throws Exception {
+        final List<Map.Entry<String, Object>> expressionsCapture = new ArrayList<>();
+        new MockUp(Ognl.class) {
+            @Mock
+            public Object getValue(Invocation invocation, List<Map.Entry<String, Object>> expressions, Map context, Class cls) {
+                expressionsCapture.addAll(expressions);
+                return invocation.proceed();
+            }
+        };
+        final SomeDto someDto = new SomeDto();
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add("name=Mohammad");
+        bindingList.add("family=Mohammad2");
+        MvcResult mvcResult = mockMvc.perform(post(BASE_URL + "dto")
+                .content(String.join("&", bindingList))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andReturn();
+        List<String> expressionsCaptureToStr = expressionsCapture.stream().map(x -> x.getKey() + "=" + x.getValue()).collect(Collectors.toList());
+        assertTrue(String.join("", expressionsCaptureToStr).contains("name=Mohammad"));
+        assertTrue(String.join("", expressionsCaptureToStr).contains("family=Mohammad2"));
+    }
 }

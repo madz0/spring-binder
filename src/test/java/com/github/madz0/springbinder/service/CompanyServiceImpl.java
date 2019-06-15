@@ -3,6 +3,7 @@ package com.github.madz0.springbinder.service;
 import com.github.madz0.springbinder.binding.form.annotation.FormObject;
 import com.github.madz0.springbinder.binding.rest.serialize.RestResultFactory;
 import com.github.madz0.springbinder.model.Company;
+import com.github.madz0.springbinder.model.dto.SomeDto;
 import com.github.madz0.springbinder.repository.CompanyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,5 +40,10 @@ public class CompanyServiceImpl implements CompanyService {
                          BindingResult bindingResult) {
         companyRepository.save(company);
         return RestResultFactory.created();
+    }
+
+    @Override
+    public Object dto(@Validated @FormObject(bindAsDto = true) SomeDto someDto, BindingResult bindingResult) {
+        return RestResultFactory.okay();
     }
 }
