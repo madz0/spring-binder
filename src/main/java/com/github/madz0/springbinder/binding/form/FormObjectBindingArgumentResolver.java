@@ -184,7 +184,6 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
             //Fix multi select issue
             if (key.contains("[]")) {
                 multiSelect = true;
-                key = key.substring(0, key.length() - 2);
             }
             if (expectedRoot != null && !fieldsContainRootName) {
                 key = expectedRoot + "." + key;
@@ -198,7 +197,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
             for (String value : pair.getValue()) {
                 String finalKey = key;
                 if (multiSelect) {
-                    finalKey += "[" + (genIndex++) + "]";
+                    finalKey = finalKey.replaceFirst("\\[\\]", "[" + (genIndex++) + "]");
                 }
                 values.add(new AbstractMap.SimpleImmutableEntry<>(finalKey.substring(finalIdx + 1), value));
             }
