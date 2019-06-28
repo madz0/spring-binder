@@ -16,9 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.net.URLEncoder;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
@@ -124,18 +123,17 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         bindingList.add(String.format("employeeParkings[%d].parking.id=%d", 1, parking2.getId()));
 
         MvcResult mvcResult = mockMvc.perform(multipart("/employeeParking/create")
-                        .file(fstmp)
-                        .file(secmp)
+                .file(fstmp)
+                .file(secmp)
                 .content(String.join("&", bindingList)))
                 .andExpect(status().isCreated())
                 .andReturn();
         Employee e = employeeRepository.findOne(employee.getId());
         List<EmployeeParking> employeeParkingList = new ArrayList<>(e.getEmployeeParkings());
-        if(employeeParkingList.get(0).getId().getParkingId().equals(parking1.getId())) {
+        if (employeeParkingList.get(0).getId().getParkingId().equals(parking1.getId())) {
             assertEquals(f.getName(), employeeParkingList.get(0).getNameFromFile());
             assertEquals(f2.getName(), employeeParkingList.get(1).getNameFromFile());
-        }
-        else {
+        } else {
             assertEquals(f.getName(), employeeParkingList.get(1).getNameFromFile());
             assertEquals(f2.getName(), employeeParkingList.get(0).getNameFromFile());
         }
@@ -183,5 +181,50 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         List<String> expressionsCaptureToStr = expressionsCapture.stream().map(x -> x.getKey() + "=" + x.getValue()).collect(Collectors.toList());
         assertTrue(String.join("", expressionsCaptureToStr).contains("name=Mohammad"));
         assertTrue(String.join("", expressionsCaptureToStr).contains("family=Mohammad2"));
+    }
+
+    @Test
+    public void arrayWithNoIndexNumberMultiSelectTest() throws Exception {
+        final List<Map.Entry<String, Object>> expressionsCapture = new ArrayList<>();
+        new MockUp(Ognl.class) {
+            @Mock
+            public Object getValue(Invocation invocation, List<Map.Entry<String, Object>> expressions, Map context, Class cls) {
+                expressionsCapture.addAll(expressions);
+                return invocation.proceed();
+            }
+        };
+        City city = new City();
+        city.setName("Tehran");
+        city = cityRepository.save(city);
+        House house = new House();
+        house.setAddress("Karoon");
+        house.setCity(city);
+        house = houseRepository.save(house);
+        Company company = new Company();
+        company.setName("Your Company");
+        company.setName2("Your Company2");
+        company.setCity(city);
+        Employee employee = new Employee();
+        employee.setCompany(company);
+        employee.setName("Gholi");
+        employee.setHouse(house);
+        company.setEmployees(new HashSet<>(Collections.singleton(employee)));
+        company = companyRepository.save(company);
+
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add("id="+company.getId());
+        bindingList.add("name=Company1");
+        bindingList.add("name2=Company2");
+        bindingList.add("city.id=" + city.getId());
+        bindingList.add(URLEncoder.encode("employees[(;)(=)]", "UTF-8")+"="+URLEncoder.encode(".name=Mohammad1;.id="+employee.getId(), "UTF-8"));
+        bindingList.add(URLEncoder.encode("employees[(;)(=)]", "UTF-8")+"="+URLEncoder.encode(".name=Mohammad2", "UTF-8"));
+        MvcResult mvcResult = mockMvc.perform(post(BASE_URL + "create")
+                .content(String.join("&", bindingList))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isCreated())
+                .andReturn();
+        List<String> expressionsCaptureToStr = expressionsCapture.stream().map(x -> x.getKey() + "=" + x.getValue()).collect(Collectors.toList());
+        assertTrue(String.join("", expressionsCaptureToStr).contains("employees[0].name=Mohammad1"));
+        assertTrue(String.join("", expressionsCaptureToStr).contains("employees[1].name=Mohammad2"));
     }
 }

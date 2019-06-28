@@ -22,8 +22,11 @@ import java.lang.reflect.Type;
 import java.net.URLDecoder;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgumentResolver {
+    private static final Pattern multiPostWithIdentifierPattern = Pattern.compile("\\[\\((.*?)\\)\\((.*?)\\)\\]");
     private IdClassMapper idClassMapper;
 
     public FormObjectBindingArgumentResolver(Map<String, EntityManager> emMap,
@@ -96,7 +99,6 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 bindingResult = validateEmptyRequest(parameter, binderFactory, webRequest);
             }
         }
-
         return finalizeBinding(parameter, mavContainer, webRequest, binderFactory, name, bindingResult, value);
     }
 
@@ -120,22 +122,32 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 continue;
             }
 
-            final int idx = pair.lastIndexOf("=");
+            final int idx = pair.indexOf("=");
             String key = null;
             String value = null;
             if (idx > 0 && pair.length() >= idx + 1) {
-
                 key = URLDecoder.decode(pair.substring(0, idx), "UTF-8");
                 value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8");
-
                 //Fix multi select issue
+                boolean multiSelect = false;
+                String multiSelectIdentifier = null;
+                String multiSelectEqualSign = null;
                 if (key.contains("[]")) {
-                    int genIndex = 0;
-                    if (!notIndexedFixMap.containsKey(key)) {
-                        notIndexedFixMap.put(key, new AtomicInteger(0));
-                    } else {
-                        genIndex = notIndexedFixMap.get(key).incrementAndGet();
+                    multiSelect = true;
+                }
+
+                if (!multiSelect) {
+                    Matcher matcher = multiPostWithIdentifierPattern.matcher(key);
+                    if (matcher.find()) {
+                        multiSelect = true;
+                        multiSelectIdentifier = matcher.group(1);
+                        multiSelectEqualSign = matcher.group(2);
+                        key = matcher.replaceFirst("[]");
                     }
+                }
+
+                if (multiSelect) {
+                    int genIndex = notIndexedFixMap.computeIfAbsent(key, x -> new AtomicInteger(-1)).incrementAndGet();
                     key = key.replaceFirst("\\[\\]", "[" + genIndex + "]");
                 }
 
@@ -145,23 +157,28 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
 
                 final int bracketIdx = key.indexOf("[");
                 final int dotIdx = key.indexOf(".");
+                int finalIdx = 0;
                 String keyParam = null;
                 if (value == null) {
-                    value = "";
+                    value = convertNullValue();
                 }
-                Map.Entry<String, Object> valueEntry = null;
+
                 if (dotIdx == bracketIdx) {
                     keyParam = key;
                     params.put(keyParam, new ArrayList<>());
                 } else if (dotIdx != -1 && (bracketIdx == -1 || bracketIdx > dotIdx)) {
                     keyParam = key.substring(0, dotIdx);
-                    valueEntry = new AbstractMap.SimpleImmutableEntry<>(key.substring(dotIdx + 1), value);
+                    finalIdx = dotIdx + 1;
                 } else {
                     keyParam = key.substring(0, bracketIdx);
-                    valueEntry = new AbstractMap.SimpleImmutableEntry<>(key.substring(bracketIdx), value);
+                    finalIdx = bracketIdx;
                 }
-
                 List<Map.Entry<String, Object>> values = params.computeIfAbsent(keyParam, k -> new ArrayList<>());
+                if (multiSelectIdentifier != null) {
+                    handleMultiSelect(multiSelectIdentifier, multiSelectEqualSign, value, values, key, finalIdx);
+                    continue;
+                }
+                Map.Entry<String, Object> valueEntry = new AbstractMap.SimpleImmutableEntry<>(key.substring(finalIdx), value);
                 values.add(valueEntry);
             } else {
                 params.put(pair, Collections.emptyList());
@@ -170,20 +187,28 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
         return params;
     }
 
-    private Map<String, List<Map.Entry<String, Object>>> parsQuery(Map<String, String[]> servletParams, String expectedRoot, Boolean fieldsContainRootName)
-            throws UnsupportedEncodingException {
+    private Map<String, List<Map.Entry<String, Object>>> parsQuery(Map<String, String[]> servletParams, String expectedRoot, Boolean fieldsContainRootName) {
         Map<String, List<Map.Entry<String, Object>>> params = new LinkedHashMap<>();
-        Map<String, AtomicInteger> notIndexedFixMap = new HashMap<>();
-
         for (Map.Entry<String, String[]> pair : servletParams.entrySet()) {
             String key = pair.getKey();
             if (key.startsWith("_")) {
                 continue;
             }
             boolean multiSelect = false;
-            //Fix multi select issue
+            String multiSelectIdentifier = null;
+            String multiSelectEqualSign = null;
             if (key.contains("[]")) {
                 multiSelect = true;
+            }
+
+            if (!multiSelect) {
+                Matcher matcher = multiPostWithIdentifierPattern.matcher(key);
+                if (matcher.find()) {
+                    multiSelect = true;
+                    multiSelectIdentifier = matcher.group(1);
+                    multiSelectEqualSign = matcher.group(2);
+                    key = matcher.replaceFirst("[]");
+                }
             }
             if (expectedRoot != null && !fieldsContainRootName) {
                 key = expectedRoot + "." + key;
@@ -198,10 +223,29 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 String finalKey = key;
                 if (multiSelect) {
                     finalKey = finalKey.replaceFirst("\\[\\]", "[" + (genIndex++) + "]");
+                    if (multiSelectIdentifier != null) {
+                        handleMultiSelect(multiSelectIdentifier, multiSelectEqualSign, value, values, finalKey, finalIdx + 1);
+                        continue;
+                    }
                 }
                 values.add(new AbstractMap.SimpleImmutableEntry<>(finalKey.substring(finalIdx + 1), value));
             }
         }
         return params;
+    }
+
+    private String convertNullValue() {
+        return "";
+    }
+
+    private void handleMultiSelect(String multiSelectIdentifier, String multiSelectEqualSign, String value, final List<Map.Entry<String, Object>> values, String finalKey, int finalIdx) {
+        for (String eachPart : value.split(multiSelectIdentifier)) {
+            if (eachPart != null && !eachPart.equals("")) {
+                String[] partArr = eachPart.split(multiSelectEqualSign);
+                String partKey = partArr[0];
+                String partValue = partArr.length > 1 ? partArr[1] : convertNullValue();
+                values.add(new AbstractMap.SimpleImmutableEntry<>(finalKey.substring(finalIdx) + partKey, partValue));
+            }
+        }
     }
 }
