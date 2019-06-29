@@ -158,10 +158,8 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         }
     }
 
-    public BindingResult validateEmptyRequest(MethodParameter parameter, WebDataBinderFactory binderFactory, NativeWebRequest webRequest) throws Exception {
-        Class pClass = parameter.getParameterType();
+    public BindingResult validateEmptyRequest(MethodParameter parameter, Object value, WebDataBinderFactory binderFactory, NativeWebRequest webRequest) throws Exception {
         String parameterName = parameter.getParameterName();
-        Object value = OgnlRuntime.createProperObject(pClass, pClass.getComponentType());
         WebDataBinder binder = binderFactory.createBinder(webRequest, value, parameterName);
         validateIfApplicable(binder, parameter);
         return binder.getBindingResult();

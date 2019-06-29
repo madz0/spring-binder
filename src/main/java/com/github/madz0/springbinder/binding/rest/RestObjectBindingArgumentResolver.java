@@ -5,6 +5,7 @@ import com.github.madz0.springbinder.binding.AbstractModelBindingArgumentResolve
 import com.github.madz0.springbinder.binding.BindUtils;
 import com.github.madz0.springbinder.binding.DefaultEntityManagerBeanNameProvider;
 import com.github.madz0.springbinder.binding.rest.annotation.RestObject;
+import ognl.OgnlRuntime;
 import org.springframework.core.MethodParameter;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
@@ -62,10 +63,11 @@ public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     BindUtils.bindAsDto.remove();
                 }
             } else {
-                bindingResult = validateEmptyRequest(parameter, binderFactory, webRequest);
+                Class pClass = parameter.getParameterType();
+                value = OgnlRuntime.createProperObject(pClass, pClass.getComponentType());
+                bindingResult = validateEmptyRequest(parameter, value, binderFactory, webRequest);
             }
         }
-
         return finalizeBinding(parameter, mavContainer, webRequest, binderFactory, name, bindingResult, value);
     }
 

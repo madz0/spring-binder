@@ -6,6 +6,7 @@ import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.form.annotation.FormObject;
 import ognl.Ognl;
 import ognl.OgnlContext;
+import ognl.OgnlRuntime;
 import ognl.extended.DefaultMemberAccess;
 import org.springframework.core.MethodParameter;
 import org.springframework.validation.BindingResult;
@@ -96,7 +97,9 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 validateIfApplicable(binder, parameter);
                 bindingResult = binder.getBindingResult();
             } else {
-                bindingResult = validateEmptyRequest(parameter, binderFactory, webRequest);
+                Class pClass = parameter.getParameterType();
+                value = OgnlRuntime.createProperObject(pClass, pClass.getComponentType());
+                bindingResult = validateEmptyRequest(parameter, value, binderFactory, webRequest);
             }
         }
         return finalizeBinding(parameter, mavContainer, webRequest, binderFactory, name, bindingResult, value);
