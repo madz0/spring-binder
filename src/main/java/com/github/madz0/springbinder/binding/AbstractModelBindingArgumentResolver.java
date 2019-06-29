@@ -101,6 +101,9 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
     }
 
     protected Object getServletData(HttpServletRequest request) throws IOException {
+        if (request.getParameterMap().size() > 0) {
+            return request.getParameterMap();
+        }
         StringBuilder builder = new StringBuilder();
         if (request.getContentLength() > 0) {
             try (BufferedReader br = request.getReader()) {
@@ -109,9 +112,6 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
                 while ((readSize = br.read(readBytes)) != -1) {
                     builder.append(new String(readBytes, 0, readSize));
                 }
-            }
-            if (builder.length() == 0) {
-                return request.getParameterMap();
             }
         }
         return builder;

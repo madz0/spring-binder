@@ -22,8 +22,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class FormBindingIntegrationTest extends AbstractIntegrationTest {
@@ -125,7 +124,8 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         MvcResult mvcResult = mockMvc.perform(multipart("/employeeParking/create")
                 .file(fstmp)
                 .file(secmp)
-                .content(String.join("&", bindingList)))
+                .content(String.join("&", bindingList))
+                .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isCreated())
                 .andReturn();
         Employee e = employeeRepository.findOne(employee.getId());
@@ -212,12 +212,12 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         company = companyRepository.save(company);
 
         List<String> bindingList = new ArrayList<>();
-        bindingList.add("id="+company.getId());
+        bindingList.add("id=" + company.getId());
         bindingList.add("name=Company1");
         bindingList.add("name2=Company2");
         bindingList.add("city.id=" + city.getId());
-        bindingList.add(URLEncoder.encode("employees[(;)(=)]", "UTF-8")+"="+URLEncoder.encode(".name=Mohammad1;.id="+employee.getId(), "UTF-8"));
-        bindingList.add(URLEncoder.encode("employees[(;)(=)]", "UTF-8")+"="+URLEncoder.encode(".name=Mohammad2", "UTF-8"));
+        bindingList.add(URLEncoder.encode("employees[(;)(=)]", "UTF-8") + "=" + URLEncoder.encode(".name=Mohammad1;.id=" + employee.getId(), "UTF-8"));
+        bindingList.add(URLEncoder.encode("employees[(;)(=)]", "UTF-8") + "=" + URLEncoder.encode(".name=Mohammad2", "UTF-8"));
         MvcResult mvcResult = mockMvc.perform(post(BASE_URL + "create")
                 .content(String.join("&", bindingList))
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED))
@@ -226,5 +226,72 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         List<String> expressionsCaptureToStr = expressionsCapture.stream().map(x -> x.getKey() + "=" + x.getValue()).collect(Collectors.toList());
         assertTrue(String.join("", expressionsCaptureToStr).contains("employees[0].name=Mohammad1"));
         assertTrue(String.join("", expressionsCaptureToStr).contains("employees[1].name=Mohammad2"));
+    }
+
+    @Test
+    public void bindWithGetTest() throws Exception {
+        final List<Map.Entry<String, Object>> expressionsCapture = new ArrayList<>();
+        new MockUp(Ognl.class) {
+            @Mock
+            public Object getValue(Invocation invocation, List<Map.Entry<String, Object>> expressions, Map context, Class cls) {
+                expressionsCapture.addAll(expressions);
+                return invocation.proceed();
+            }
+        };
+        final SomeDto someDto = new SomeDto();
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add("name=Mohammad");
+        bindingList.add("family=Mohammad2");
+        MvcResult mvcResult = mockMvc.perform(get(BASE_URL + "dto")
+                .content(String.join("&", bindingList))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andReturn();
+        List<String> expressionsCaptureToStr = expressionsCapture.stream().map(x -> x.getKey() + "=" + x.getValue()).collect(Collectors.toList());
+        assertTrue(String.join("", expressionsCaptureToStr).contains("name=Mohammad"));
+        assertTrue(String.join("", expressionsCaptureToStr).contains("family=Mohammad2"));
+    }
+
+    @Test
+    public void bindWithGetQueryStringTest() throws Exception {
+        final List<Map.Entry<String, Object>> expressionsCapture = new ArrayList<>();
+        new MockUp(Ognl.class) {
+            @Mock
+            public Object getValue(Invocation invocation, List<Map.Entry<String, Object>> expressions, Map context, Class cls) {
+                expressionsCapture.addAll(expressions);
+                return invocation.proceed();
+            }
+        };
+        final SomeDto someDto = new SomeDto();
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add("name=Mohammad");
+        bindingList.add("family=Mohammad2");
+        MvcResult mvcResult = mockMvc.perform(get(BASE_URL + "dto?name=Mohammad&family=Mohammad2")
+                .contentType(MediaType.TEXT_HTML))
+                .andExpect(status().isOk())
+                .andReturn();
+        List<String> expressionsCaptureToStr = expressionsCapture.stream().map(x -> x.getKey() + "=" + x.getValue()).collect(Collectors.toList());
+        assertTrue(String.join("", expressionsCaptureToStr).contains("name=Mohammad"));
+        assertTrue(String.join("", expressionsCaptureToStr).contains("family=Mohammad2"));
+    }
+
+    @Test
+    public void bindWithPostAndQueryStringTest() throws Exception {
+        final List<Map.Entry<String, Object>> expressionsCapture = new ArrayList<>();
+        new MockUp(Ognl.class) {
+            @Mock
+            public Object getValue(Invocation invocation, List<Map.Entry<String, Object>> expressions, Map context, Class cls) {
+                expressionsCapture.addAll(expressions);
+                return invocation.proceed();
+            }
+        };
+        mockMvc.perform(post(BASE_URL + "dto?family=Mohammad2")
+                .content("name=Mohammad")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andReturn();
+        List<String> expressionsCaptureToStr = expressionsCapture.stream().map(x -> x.getKey() + "=" + x.getValue()).collect(Collectors.toList());
+        assertTrue(String.join("", expressionsCaptureToStr).contains("name=Mohammad"));
+        assertTrue(String.join("", expressionsCaptureToStr).contains("family=Mohammad2"));
     }
 }

@@ -54,7 +54,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
 
         if (value == null) {
             Object ret = getServletData(request);
-            FormObject formObject = parameter.getParameterAnnotation(FormObject.class);
+            FormObject formObject = Objects.requireNonNull(parameter.getParameterAnnotation(FormObject.class), "Wrong parameter for FormObject");
             List<Map.Entry<String, Object>> entries = null;
             if ((ret instanceof StringBuilder)) {
                 StringBuilder builder = (StringBuilder) ret;
@@ -75,7 +75,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 entries = new ArrayList<>();
             }
             addMultiParFiles(request, entries);
-            if (entries != null && entries.size() > 0) {
+            if (entries.size() > 0) {
                 mavContainer.setBinding(parameter.getParameterName(), true);
                 Type type = parameter.getParameterType();
                 OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
