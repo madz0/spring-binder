@@ -6,7 +6,7 @@
 
     <groupId>com.github.madz0</groupId>
     <artifactId>spring-binder</artifactId>
-    <version>3.7-SNAPSHOT</version>
+    <version>3.8-SNAPSHOT</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -47,11 +47,11 @@
             <version>3.8.1</version>
         </dependency>
         <dependency>
-            <groupId>ognl</groupId>
-            <artifactId>ognl</artifactId>
-            <version>3.2.11-SNAPSHOT-2.1-ext-SNAPSHOT</version>
+            <groupId>com.github.madz0</groupId>
+            <artifactId>ognl2</artifactId>
+            <version>2.3-SNAPSHOT</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/ognl-3.2.11-SNAPSHOT-2.2-ext-SNAPSHOT.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/resources/ognl2-2.3-SNAPSHOT.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>mysql</groupId>
