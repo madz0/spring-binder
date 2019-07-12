@@ -123,7 +123,7 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         if (request instanceof MultipartHttpServletRequest) {
             Map<String, MultipartFile> multipartFileMap = ((MultipartHttpServletRequest) request).getFileMap();
             if (multipartFileMap != null) {
-                multipartFileMap.entrySet().forEach(e -> values.add(e));
+                values.addAll(multipartFileMap.entrySet());
             }
         }
     }

@@ -316,6 +316,5 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         assertTrue(mvcResult.getResponse().getContentAsString().startsWith("{\"result\":{\"someMap\":{\"test2\":\"Mohammad2"));
-
     }
 }
