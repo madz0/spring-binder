@@ -1,14 +1,14 @@
 package com.github.madz0.springbinder.test;
 
+import com.github.madz0.ognl2.Ognl;
+import com.github.madz0.ognl2.OgnlContext;
+import com.github.madz0.ognl2.OgnlException;
+import com.github.madz0.ognl2.extended.DefaultMemberAccess;
 import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.form.EntityModelObjectConstructor;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.*;
 import com.github.madz0.springbinder.repository.*;
-import ognl.Ognl;
-import ognl.OgnlContext;
-import ognl.OgnlException;
-import ognl.extended.DefaultMemberAccess;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

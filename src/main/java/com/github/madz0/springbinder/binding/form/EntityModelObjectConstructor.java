@@ -1,5 +1,7 @@
 package com.github.madz0.springbinder.binding.form;
 
+import com.github.madz0.ognl2.*;
+import com.github.madz0.ognl2.extended.*;
 import com.github.madz0.springbinder.binding.BindUtils;
 import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.property.FieldProperty;
@@ -8,8 +10,6 @@ import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.BaseGroups;
 import com.github.madz0.springbinder.model.IBaseModelId;
 import lombok.extern.slf4j.Slf4j;
-import ognl.*;
-import ognl.extended.*;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.util.StringUtils;
 

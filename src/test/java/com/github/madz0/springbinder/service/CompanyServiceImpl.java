@@ -43,7 +43,7 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     @Override
-    public Object dto(@Validated @FormObject(bindAsDto = true) SomeDto someDto, BindingResult bindingResult) {
-        return RestResultFactory.okay();
+    public Object dto(@Validated @FormObject SomeDto someDto, BindingResult bindingResult) {
+        return RestResultFactory.okay(someDto, null);
     }
 }

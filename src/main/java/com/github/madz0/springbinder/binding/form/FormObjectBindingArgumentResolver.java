@@ -1,13 +1,12 @@
 package com.github.madz0.springbinder.binding.form;
 
+import com.github.madz0.ognl2.Ognl;
+import com.github.madz0.ognl2.OgnlContext;
+import com.github.madz0.ognl2.OgnlRuntime;
+import com.github.madz0.ognl2.extended.DefaultMemberAccess;
 import com.github.madz0.springbinder.binding.AbstractModelBindingArgumentResolver;
-import com.github.madz0.springbinder.binding.DefaultEntityManagerBeanNameProvider;
 import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.form.annotation.FormObject;
-import ognl.Ognl;
-import ognl.OgnlContext;
-import ognl.OgnlRuntime;
-import ognl.extended.DefaultMemberAccess;
 import org.springframework.core.MethodParameter;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
@@ -81,9 +80,9 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
                 Class cls = null;
                 if (type instanceof ParameterizedType) {
-                    ParameterizedType ptype = (ParameterizedType) type;
-                    cls = (Class) ptype.getRawType();
-                    context.extend(ptype);
+                    ParameterizedType pType = (ParameterizedType) type;
+                    cls = (Class) pType.getRawType();
+                    context.extend(pType);
                 } else {
                     cls = (Class) type;
                     context.extend();

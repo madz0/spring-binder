@@ -1,13 +1,14 @@
 package com.github.madz0.springbinder.test;
 
+import com.github.madz0.ognl2.Ognl;
 import com.github.madz0.springbinder.model.*;
 import com.github.madz0.springbinder.model.dto.SomeDto;
 import com.github.madz0.springbinder.repository.*;
 import mockit.Invocation;
 import mockit.Mock;
 import mockit.MockUp;
-import ognl.Ognl;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -293,5 +294,28 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
         List<String> expressionsCaptureToStr = expressionsCapture.stream().map(x -> x.getKey() + "=" + x.getValue()).collect(Collectors.toList());
         assertTrue(String.join("", expressionsCaptureToStr).contains("name=Mohammad"));
         assertTrue(String.join("", expressionsCaptureToStr).contains("family=Mohammad2"));
+    }
+
+    @Test
+    public void mapOrderBindTest() throws Exception {
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add(URLEncoder.encode("someMap[test1]", "UTF-8") + "=" + URLEncoder.encode("Mohammad1", "UTF-8"));
+        bindingList.add(URLEncoder.encode("someMap[test2]", "UTF-8") + "=" + URLEncoder.encode("Mohammad2", "UTF-8"));
+        MvcResult mvcResult = mockMvc.perform(post(BASE_URL + "dto")
+                .content(String.join("&", bindingList))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertTrue(mvcResult.getResponse().getContentAsString().startsWith("{\"result\":{\"someMap\":{\"test1\":\"Mohammad1"));
+        bindingList = new ArrayList<>();
+        bindingList.add(URLEncoder.encode("someMap[test2]", "UTF-8") + "=" + URLEncoder.encode("Mohammad2", "UTF-8"));
+        bindingList.add(URLEncoder.encode("someMap[test1]", "UTF-8") + "=" + URLEncoder.encode("Mohammad1", "UTF-8"));
+        mvcResult = mockMvc.perform(post(BASE_URL + "dto")
+                .content(String.join("&", bindingList))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertTrue(mvcResult.getResponse().getContentAsString().startsWith("{\"result\":{\"someMap\":{\"test2\":\"Mohammad2"));
+
     }
 }
