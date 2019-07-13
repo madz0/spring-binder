@@ -7,13 +7,13 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 import com.github.madz0.ognl2.OgnlOps;
-import com.github.madz0.springbinder.binding.BindUtils;
+import com.github.madz0.springbinder.binding.BindingUtils;
 import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
-import com.github.madz0.springbinder.model.BaseGroups;
-import com.github.madz0.springbinder.model.IBaseModel;
-import com.github.madz0.springbinder.model.IBaseModelId;
+import com.github.madz0.springbinder.model.Groups;
+import com.github.madz0.springbinder.model.IModel;
+import com.github.madz0.springbinder.model.IdModel;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.IteratorUtils;
@@ -27,7 +27,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 @Slf4j
-public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializer<T> implements ResolvableDeserializer {
+public class BaseModelDeserializer<T extends IdModel> extends StdDeserializer<T> implements ResolvableDeserializer {
     private final ObjectMapper objectMapper;
     private final JsonDeserializer deserializer;
     private final BeanDeserializer beanDeserializer;
@@ -41,7 +41,7 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
         this.deserializer = deserializer;
         if (deserializer instanceof BeanDeserializer) {
             this.beanDeserializer = (BeanDeserializer) deserializer;
-            this.beanWrapper = BindUtils.getBeanWrapper(vc);
+            this.beanWrapper = BindingUtils.getBeanWrapper(vc);
         } else {
             this.beanDeserializer = null;
             this.beanWrapper = null;
@@ -58,13 +58,13 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
     @SneakyThrows
     @SuppressWarnings("unchecked")
     public T deserialize(JsonParser p, DeserializationContext ctxt) {
-        if (BindUtils.group.get() == null || BindUtils.bindAsDto.get()) {
+        if (BindingUtils.group.get() == null || BindingUtils.dtoBinding.get()) {
             return (T) deserializer.deserialize(p, ctxt);
         }
         JsonNode root = p.getCodec().readTree(p);
-        if (BaseGroups.IDto.class.isAssignableFrom(BindUtils.group.get())) {
-            JsonNode clazzNode = root.get(IBaseModel.RECORD_TYPE_FIELD);
-            JsonNode idNode = root.get(IBaseModelId.ID_FIELD);
+        if (Groups.IDto.class.isAssignableFrom(BindingUtils.group.get())) {
+            JsonNode clazzNode = root.get(IModel.RECORD_TYPE_FIELD);
+            JsonNode idNode = root.get(IdModel.ID_FIELD);
             if (clazzNode.isTextual() && idNode.isTextual()) {
                 String clazzName = clazzNode.asText();
                 Class<?> clazz = Class.forName(clazzName);
@@ -74,26 +74,26 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
             throw new IllegalStateException("can not determine id or class");
         }
         T value;
-        if (BindUtils.updating.get()) {
+        if (BindingUtils.updating.get()) {
             try {
                 Object id = getId(root, getIdClass(_valueClass));
-                EntityGraph<?> graph = BindUtils.entityGraph.get();
+                EntityGraph<?> graph = BindingUtils.entityGraph.get();
                 if (graph != null) {
                     value = (T) em.find(_valueClass, id, Collections.singletonMap("javax.persistence.loadgraph", graph));
                 } else {
                     value = (T) em.find(_valueClass, id);
                 }
             } catch (Exception e) {
-                throw new InvalidDataAccessApiUsageException(IBaseModelId.ID_FIELD);
+                throw new InvalidDataAccessApiUsageException(IdModel.ID_FIELD);
             }
             if (value == null) {
-                throw new InvalidDataAccessApiUsageException(IBaseModelId.ID_FIELD);
+                throw new InvalidDataAccessApiUsageException(IdModel.ID_FIELD);
             }
         } else {
             if (beanDeserializer != null) {
                 value = (T) beanDeserializer.getValueInstantiator().createUsingDefault(ctxt);
             } else {
-                value = (T) BindUtils.createModel(_valueClass);
+                value = (T) BindingUtils.createModel(_valueClass);
             }
         }
         return bind(p, root, value);
@@ -102,7 +102,7 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
     @SuppressWarnings("unchecked")
     @Override
     public T deserialize(JsonParser p, DeserializationContext ctxt, T value) throws IOException {
-        if (BindUtils.group.get() == null) {
+        if (BindingUtils.group.get() == null) {
             return (T) deserializer.deserialize(p, ctxt);
         }
         JsonNode root = p.getCodec().readTree(p);
@@ -114,9 +114,9 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
         if (beanDeserializer == null) {
             throw new IllegalStateException("can not bind into non bean using BaseModelDeserializer");
         }
-        Set<IProperty> properties = BindUtils.peekProperties();
+        Set<IProperty> properties = BindingUtils.peekProperties();
         if (properties == null) {
-            properties = BindUtils.getPropertiesOfCurrentGroup();
+            properties = BindingUtils.getPropertiesOfCurrentGroup();
         }
         for (IProperty property : properties) {
             JsonNode node = root.get(property.getName());
@@ -137,11 +137,11 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
         } else {
             Object model = beanWrapper.getPropertyDescriptor(modelProperty.getName()).getReadMethod().invoke(value);
             if (model == null) {
-                model = BindUtils.createModel(beanProperty.getType().getRawClass());
+                model = BindingUtils.createModel(beanProperty.getType().getRawClass());
             }
             final Object finalModel = model;
             try {
-                BindUtils.pushPopProperties(modelProperty.getFields(),
+                BindingUtils.pushPopProperties(modelProperty.getFields(),
                         () -> objectMapper.readerForUpdating(finalModel).readValue(node)
                 );
             } catch (Throwable t) {
@@ -153,8 +153,8 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
     }
 
     private boolean matchId(JsonNode node, Object model) {
-        if (model instanceof IBaseModelId) {
-            IBaseModelId baseModel = (IBaseModelId) model;
+        if (model instanceof IdModel) {
+            IdModel baseModel = (IdModel) model;
             return baseModel.getId() != null && Objects.equals(getId(node, baseModel.getId().getClass()), baseModel.getId());
         }
         return false;
@@ -162,7 +162,7 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
 
     private Object getId(JsonNode node, Class idClass) {
         if (node != null) {
-            JsonNode idNode = node.get(IBaseModelId.ID_FIELD);
+            JsonNode idNode = node.get(IdModel.ID_FIELD);
             if (idNode != null) {
                 if (idNode.isTextual()) {
                     return getIdByType(idClass, idNode.textValue());
@@ -170,7 +170,7 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
                     return getIdByType(idClass, String.valueOf(idNode.numberValue()));
                 } else if (idNode.isObject()) {
                     try {
-                        return objectMapper.readerForUpdating(BindUtils.createModel(idClass)).readValue(idNode);
+                        return objectMapper.readerForUpdating(BindingUtils.createModel(idClass)).readValue(idNode);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -192,7 +192,7 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
         @Override
         public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config, BeanDescription beanDesc, JsonDeserializer<?> deserializer) {
             ObjectMapper objectMapper = ContextAwareObjectMapper.getBean(ObjectMapper.class);
-            if (IBaseModelId.class.isAssignableFrom(beanDesc.getBeanClass())) {
+            if (IdModel.class.isAssignableFrom(beanDesc.getBeanClass())) {
                 return new BaseModelDeserializer(beanDesc.getBeanClass(), objectMapper, deserializer);
             }
             if (deserializer instanceof BeanDeserializer) {
@@ -222,7 +222,7 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
                         }
                         List<JsonNode> src = IteratorUtils.toList(node.iterator());
                         if (dest == null) {
-                            dest = BindUtils.createCollection(beanProperty.getType().getRawClass());
+                            dest = BindingUtils.createCollection(beanProperty.getType().getRawClass());
                             beanProperty.set(value, dest);
                         }
                         if (beanProperty.getAnnotation(OneToMany.class) != null) {
@@ -238,17 +238,17 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
                                         .filter(x -> matchId(collectionNode, x))
                                         .findAny();
                                 final Collection finalDest = dest;
-                                BindUtils.pushPopProperties(modelProperty.getFields(), () -> {
+                                BindingUtils.pushPopProperties(modelProperty.getFields(), () -> {
                                     Object modelObj = null;
                                     if (model.isPresent()) {
                                         modelObj = model.get();
                                         objectMapper.readerForUpdating(modelObj).readValue(collectionNode);
                                     } else {
                                         //instantiate and add new
-                                        modelObj = BindUtils.createModel(genericType.getRawClass());
+                                        modelObj = BindingUtils.createModel(genericType.getRawClass());
                                         finalDest.add(objectMapper.readerForUpdating(modelObj).readValue(collectionNode));
                                     }
-                                    BindUtils.getBeanWrapper(modelObj.getClass()).
+                                    BindingUtils.getBeanWrapper(modelObj.getClass()).
                                             getPropertyDescriptor(_valueClass.getSimpleName())
                                             .getWriteMethod().invoke(modelObj, value);
                                 });
@@ -271,7 +271,7 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
                         }
                     } else {
                         if (dest == null) {
-                            dest = BindUtils.createMap(beanProperty.getType().getRawClass());
+                            dest = BindingUtils.createMap(beanProperty.getType().getRawClass());
                             beanProperty.set(value, dest);
                         }
                         if (beanProperty.getAnnotation(OneToMany.class) != null) {
@@ -288,12 +288,12 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
                                     String key = jsonNode.get("key").asText();
                                     Object model = dest.get(key);
                                     final Map finalDest = dest;
-                                    BindUtils.pushPopProperties(modelProperty.getFields(), () -> {
+                                    BindingUtils.pushPopProperties(modelProperty.getFields(), () -> {
                                         if (model != null) {
                                             objectMapper.readerForUpdating(model).readValue(jsonNode.get("value"));
                                         } else {
                                             //instantiate and add new
-                                            finalDest.put(key, objectMapper.readerForUpdating(BindUtils.createModel(genericType.getRawClass())).readValue(jsonNode.get("value")));
+                                            finalDest.put(key, objectMapper.readerForUpdating(BindingUtils.createModel(genericType.getRawClass())).readValue(jsonNode.get("value")));
                                         }
                                     });
                                 }
@@ -303,12 +303,12 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
                                     String key = iterator.next();
                                     Object model = dest.get(key);
                                     final Map finalDest = dest;
-                                    BindUtils.pushPopProperties(modelProperty.getFields(), () -> {
+                                    BindingUtils.pushPopProperties(modelProperty.getFields(), () -> {
                                         if (model != null) {
                                             objectMapper.readerForUpdating(model).readValue(node.get(key));
                                         } else {
                                             //instantiate and add new
-                                            finalDest.put(key, objectMapper.readerForUpdating(BindUtils.createModel(genericType.getRawClass())).readValue(node.get(key)));
+                                            finalDest.put(key, objectMapper.readerForUpdating(BindingUtils.createModel(genericType.getRawClass())).readValue(node.get(key)));
                                         }
                                     });
 
@@ -375,6 +375,6 @@ public class BaseModelDeserializer<T extends IBaseModelId> extends StdDeserializ
     }
 
     private Class<?> getIdClass(Class<?> cls) {
-        return idClassMapper != null ? idClassMapper.getIdClassOf(cls) : BindUtils.getBeanWrapper(cls).getPropertyDescriptor(IBaseModelId.ID_FIELD).getReadMethod().getReturnType();
+        return idClassMapper != null ? idClassMapper.getIdClassOf(cls) : BindingUtils.getBeanWrapper(cls).getPropertyDescriptor(IdModel.ID_FIELD).getReadMethod().getReturnType();
     }
 }

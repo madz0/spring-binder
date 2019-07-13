@@ -14,7 +14,7 @@ import java.util.Set;
 @Getter
 @Setter
 @Entity
-public class Parking extends BaseModeId {
+public class Parking extends IdBaseModel {
     private String name;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "parking", orphanRemoval = true, fetch = FetchType.LAZY)

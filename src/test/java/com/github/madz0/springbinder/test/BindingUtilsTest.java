@@ -9,10 +9,10 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
-import static com.github.madz0.springbinder.binding.BindUtils.*;
+import static com.github.madz0.springbinder.binding.BindingUtils.*;
 import static org.junit.Assert.assertNotNull;
 
-public class BindUtilsTest extends BaseTest {
+public class BindingUtilsTest extends BaseTest {
 
     @Autowired
     EntityManager em;

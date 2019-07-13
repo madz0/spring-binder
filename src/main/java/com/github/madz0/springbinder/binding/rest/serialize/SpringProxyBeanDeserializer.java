@@ -8,9 +8,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.BeanDeserializer;
 import com.fasterxml.jackson.databind.deser.ResolvableDeserializer;
 import com.fasterxml.jackson.databind.node.TreeTraversingParser;
-import com.github.madz0.springbinder.binding.BindUtils;
-import com.github.madz0.springbinder.model.BaseGroups;
-import com.github.madz0.springbinder.model.IBaseModel;
+import com.github.madz0.springbinder.binding.BindingUtils;
+import com.github.madz0.springbinder.model.Groups;
+import com.github.madz0.springbinder.model.IModel;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -46,10 +46,10 @@ public class SpringProxyBeanDeserializer extends BeanDeserializer implements Res
 
     public static ImmutablePair<Object, JsonParser> parseForBeanNode(JsonParser p) throws Exception {
         Object object = null;
-        Class<? extends BaseGroups.IGroup> clazz = BindUtils.group.get();
-        if (clazz != null && BaseGroups.IGroup.class.isAssignableFrom(clazz)) {
+        Class<? extends Groups.IGroup> clazz = BindingUtils.group.get();
+        if (clazz != null && Groups.IGroup.class.isAssignableFrom(clazz)) {
             JsonNode root = p.readValueAsTree();
-            JsonNode recordType = root.get(IBaseModel.RECORD_TYPE_FIELD);
+            JsonNode recordType = root.get(IModel.RECORD_TYPE_FIELD);
             if (recordType != null && recordType.isTextual() && recordType.asText().equals("bean")) {
                 JsonNode beanName = root.get("beanName");
                 if (beanName != null && beanName.isTextual()) {

@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-public class House extends BaseModeId{
+public class House extends IdBaseModel {
 
 	@Column
 	private String address;

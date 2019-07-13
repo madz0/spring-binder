@@ -3,7 +3,7 @@ package com.github.madz0.springbinder.binding.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.madz0.ognl2.OgnlRuntime;
 import com.github.madz0.springbinder.binding.AbstractModelBindingArgumentResolver;
-import com.github.madz0.springbinder.binding.BindUtils;
+import com.github.madz0.springbinder.binding.BindingUtils;
 import com.github.madz0.springbinder.binding.rest.annotation.RestObject;
 import org.springframework.core.MethodParameter;
 import org.springframework.validation.BindingResult;
@@ -47,19 +47,19 @@ public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 RestObject restObject = parameter.getParameterAnnotation(RestObject.class);
                 try {
                     EntityManager em = emMap.get(restObject.entityManagerBean());
-                    BindUtils.group.set(restObject.group());
-                    BindUtils.updating.set(restObject.isUpdating());
-                    BindUtils.entityGraph.set(createEntityGraph(em, parameter.getParameterType(), restObject.entityGraph()));
-                    BindUtils.bindAsDto.set(restObject.bindAsDto());
+                    BindingUtils.group.set(restObject.group());
+                    BindingUtils.updating.set(restObject.isUpdating());
+                    BindingUtils.entityGraph.set(createEntityGraph(em, parameter.getParameterType(), restObject.entityGraph()));
+                    BindingUtils.dtoBinding.set(restObject.dtoBinding());
                     value = mapper.readValue(builder.toString(), parameter.getParameterType());
                     binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
                     validateIfApplicable(binder, parameter);
                     bindingResult = binder.getBindingResult();
                 } finally {
-                    BindUtils.group.remove();
-                    BindUtils.updating.remove();
-                    BindUtils.entityGraph.remove();
-                    BindUtils.bindAsDto.remove();
+                    BindingUtils.group.remove();
+                    BindingUtils.updating.remove();
+                    BindingUtils.entityGraph.remove();
+                    BindingUtils.dtoBinding.remove();
                 }
             } else {
                 Class pClass = parameter.getParameterType();

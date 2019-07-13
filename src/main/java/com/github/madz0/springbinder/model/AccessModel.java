@@ -1,6 +1,6 @@
 package com.github.madz0.springbinder.model;
 
-public interface IBaseModelAccess {
+public interface AccessModel {
     String ACCESS_FIELD = "access";
 
     default String[] getAccess() {

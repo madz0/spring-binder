@@ -14,7 +14,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-public class Employee extends BaseModeId {
+public class Employee extends IdBaseModel {
 
     @Column
     private String name;
@@ -44,7 +44,7 @@ public class Employee extends BaseModeId {
         return null;
     }
 
-    public interface EmployeeParkingEdit extends BaseGroups.IEdit {
+    public interface EmployeeParkingEdit extends Groups.IEdit {
         @Override
         default Set<IProperty> getProperties() {
             return editProps(Employee.class,

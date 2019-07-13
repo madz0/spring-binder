@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.github.madz0.springbinder.binding.BindUtils;
-import com.github.madz0.springbinder.model.BaseGroups;
-import com.github.madz0.springbinder.model.IBaseModel;
+import com.github.madz0.springbinder.binding.BindingUtils;
+import com.github.madz0.springbinder.model.Groups;
+import com.github.madz0.springbinder.model.IModel;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,7 +26,7 @@ public class SpringProxySerializer extends StdSerializer {
     @Override
     @SuppressWarnings("unchecked")
     public void serialize(Object value, JsonGenerator gen, SerializerProvider provider) throws IOException {
-        if(!BaseGroups.IGroup.class.isAssignableFrom(BindUtils.group.get())) {
+        if(!Groups.IGroup.class.isAssignableFrom(BindingUtils.group.get())) {
             serializer.serialize(value, gen, provider);
             return;
         }
@@ -45,7 +45,7 @@ public class SpringProxySerializer extends StdSerializer {
 
         gen.writeStartObject();
         gen.writeStringField("beanName", beanName);
-        gen.writeStringField(IBaseModel.RECORD_TYPE_FIELD, "bean");
+        gen.writeStringField(IModel.RECORD_TYPE_FIELD, "bean");
         gen.writeEndObject();
     }
 }

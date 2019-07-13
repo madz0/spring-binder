@@ -2,13 +2,13 @@ package com.github.madz0.springbinder.binding.form;
 
 import com.github.madz0.ognl2.*;
 import com.github.madz0.ognl2.extended.*;
-import com.github.madz0.springbinder.binding.BindUtils;
+import com.github.madz0.springbinder.binding.BindingUtils;
 import com.github.madz0.springbinder.binding.IdClassMapper;
 import com.github.madz0.springbinder.binding.property.FieldProperty;
 import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
-import com.github.madz0.springbinder.model.BaseGroups;
-import com.github.madz0.springbinder.model.IBaseModelId;
+import com.github.madz0.springbinder.model.Groups;
+import com.github.madz0.springbinder.model.IdModel;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.util.StringUtils;
@@ -27,25 +27,25 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
     private EntityGraph<?> graph;
     private IdClassMapper idClassMapper;
     private Stack<Set<IProperty>> groupStack = new Stack<>();
-    private Boolean bindAsDto;
+    private Boolean dtoBinding;
 
     public EntityModelObjectConstructor(EntityManager entityManager,
                                         EntityGraph<?> graph,
-                                        Class<? extends BaseGroups.IGroup> group,
+                                        Class<? extends Groups.IGroup> group,
                                         IdClassMapper idClassMapper,
-                                        Boolean bindAsDto) {
+                                        Boolean dtoBinding) {
         this.entityManager = entityManager;
         this.graph = graph;
-        if (group != BaseGroups.IGroup.class) {
-            groupStack.push(BindUtils.getPropertiesFromGroup(group));
+        if (group != Groups.IGroup.class) {
+            groupStack.push(BindingUtils.getPropertiesFromGroup(group));
         }
         this.idClassMapper = idClassMapper;
-        this.bindAsDto = bindAsDto;
+        this.dtoBinding = dtoBinding;
     }
 
     @Override
     public Object createObject(Class<?> cls, Class<?> componentType, MapNode node) throws InstantiationException, IllegalAccessException, InvocationTargetException {
-        if (!bindAsDto && IBaseModelId.class.isAssignableFrom(cls) && node != null && node.getIsRoot()) {
+        if (!dtoBinding && IdModel.class.isAssignableFrom(cls) && node != null && node.getIsRoot()) {
             Object id = getId(node, getIdClass(cls));
             if (id != null) {
                 if (graph != null) {
@@ -62,14 +62,14 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
     public Object processObjectForGet(OgnlContext context, Object root, OgnlPropertyDescriptor propertyDescriptor,
                                       Object propertyObject, MapNode node) {
         IProperty currentProp = null;
-        if ((!bindAsDto || !(root instanceof Collection)) && !groupStack.isEmpty()) {
+        if ((root instanceof IdModel) && (!dtoBinding || !(root instanceof Collection)) && !groupStack.isEmpty()) {
             currentProp = getIProperty(groupStack.peek(), propertyDescriptor.getPropertyName());
             if (currentProp == null) {
                 return propertyObject;
             }
         }
 
-        if (!bindAsDto && propertyDescriptor != null && root instanceof IBaseModelId) {
+        if (!dtoBinding && propertyDescriptor != null && root instanceof IdModel) {
             if (node.isCollection()) {
                 Type genericType = propertyDescriptor.getReadMethod().getGenericReturnType();
                 ParameterizedType parameterizedType = (ParameterizedType) genericType; //If not let it throws exception
@@ -81,12 +81,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
                     } else {
                         Collection<MapNode> src = node.getChildren().values();
                         if (propertyDescriptor.getAnnotation(OneToMany.class) != null) {
-                            for (Iterator<?> it = dest.iterator(); it.hasNext(); ) {
-                                Object modelObject = it.next();
-                                if (src.stream().noneMatch(mapNode -> matchId(mapNode, modelObject))) {
-                                    it.remove();
-                                }
-                            }
+                            dest.removeIf(modelObject -> src.stream().noneMatch(mapNode -> matchId(mapNode, modelObject)));
                             for (MapNode collectionNode : node.getChildren().values()) {
                                 Optional model = dest.stream()
                                         .filter(x -> matchId(collectionNode, x))
@@ -105,9 +100,8 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
                                                 OgnlRuntime.setProperty(contextFinal, finalObj, root.getClass().getSimpleName().toLowerCase(), root);
                                             } catch (Exception e) {
                                                 log.error("", e);
-                                            } finally {
-                                                return null;
                                             }
+                                            return null;
                                         });
                                         dest.add(obj);
                                     } catch (Exception e) {
@@ -116,22 +110,13 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
                                 }
 
                                 if (!collectionNode.getContainsValue() || collectionNode.getValue() != null) {
-                                    final Object finalObj = obj;
-                                    pushPopPropFields(currentProp, () -> {
-                                        try {
-                                            Ognl.getValue(collectionNode, contextFinal, finalObj);
-                                        } catch (OgnlException e) {
-                                            log.error("", e);
-                                        } finally {
-                                            return null;
-                                        }
-                                    });
+                                    doFieldBinding(currentProp, collectionNode, contextFinal, obj);
                                 }
                             }
                         } else if (propertyDescriptor.getAnnotation(ManyToMany.class) != null) {
                             dest.clear();
                             for (MapNode collectionNode : node.getChildren().values()) {
-                                dest.add(entityManager.getReference(genericClazz, collectionNode.getMapping(IBaseModelId.ID_FIELD)));
+                                dest.add(entityManager.getReference(genericClazz, collectionNode.getMapping(IdModel.ID_FIELD)));
                             }
                         } else {
                             throw new IllegalStateException("collection field must be OneToMany or ManyToMany");
@@ -168,16 +153,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
                                         log.error("", e);
                                     }
                                 }
-                                final Object finalObj = obj;
-                                pushPopPropFields(currentProp, () -> {
-                                    try {
-                                        Ognl.getValue(collectionNode, contextFinal, finalObj);
-                                    } catch (OgnlException e) {
-                                        log.error("", e);
-                                    } finally {
-                                        return null;
-                                    }
-                                });
+                                doFieldBinding(currentProp, collectionNode, contextFinal, obj);
                             }
                         } else {
                             throw new IllegalStateException("Map field must be OneToMany");
@@ -222,23 +198,14 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
                     OgnlContext contextFinal = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
                     contextFinal.extend();
                     contextFinal.setObjectConstructor(this);
-                    final Object finalObj = propertyObject;
-                    pushPopPropFields(currentProp, () -> {
-                        try {
-                            Ognl.getValue(node, contextFinal, finalObj);
-                        } catch (OgnlException e) {
-                            log.error("", e);
-                        } finally {
-                            return null;
-                        }
-                    });
+                    doFieldBinding(currentProp, node, contextFinal, propertyObject);
                 }
             } else {
                 OgnlContext contextFinal = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
                 contextFinal.extend();
                 contextFinal.setObjectConstructor(this);
                 final Object finalObj = propertyObject;
-                pushPopPropFields((IModelProperty) currentProp, () -> {
+                pushPopPropFields(currentProp, () -> {
                     try {
                         Ognl.getValue(node, contextFinal, finalObj);
                         return null;
@@ -251,6 +218,18 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
             return propertyObject;
         }
         return pushPopPropFields(currentProp, () -> super.processObjectForGet(context, root, propertyDescriptor, propertyObject, node));
+    }
+
+    protected void doFieldBinding(IProperty currentProp, MapNode collectionNode, OgnlContext contextFinal, Object obj) {
+        final Object finalObj = obj;
+        pushPopPropFields(currentProp, () -> {
+            try {
+                Ognl.getValue(collectionNode, contextFinal, finalObj);
+            } catch (OgnlException e) {
+                log.error("", e);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -266,8 +245,8 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
     }
 
     private boolean matchId(MapNode node, Object model) {
-        if (model instanceof IBaseModelId) {
-            IBaseModelId baseModel = (IBaseModelId) model;
+        if (model instanceof IdModel) {
+            IdModel baseModel = (IdModel) model;
             return baseModel.getId() != null && Objects.equals(getId(node, baseModel.getId().getClass()), baseModel.getId());
         }
         return false;
@@ -275,7 +254,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
 
     private Object getId(MapNode node, Class idClass) {
         if (node != null) {
-            MapNode idNode = node.getMapping(IBaseModelId.ID_FIELD);
+            MapNode idNode = node.getMapping(IdModel.ID_FIELD);
             if (idNode != null) {
                 if (idNode.getContainsValue()) {
                     return OgnlOps.convertValue(idNode.getValue(), idClass);
@@ -332,7 +311,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
     private Class<?> getIdClass(Class<?> cls) {
         try {
             return idClassMapper != null ? idClassMapper.getIdClassOf(cls) :
-                    OgnlRuntime.getPropertyDescriptor(cls, IBaseModelId.ID_FIELD).getReadMethod().getReturnType();
+                    OgnlRuntime.getPropertyDescriptor(cls, IdModel.ID_FIELD).getReadMethod().getReturnType();
         } catch (Exception e) {
             e.printStackTrace();
             return null;

@@ -17,7 +17,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-public class Car extends BaseModeId {
+public class Car extends IdBaseModel {
 
     @Column
     String model;

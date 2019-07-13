@@ -15,9 +15,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-public class Company extends BaseModeId {
+public class Company extends IdBaseModel {
 
-    public interface ICreate extends BaseGroups.ICreate {
+    public interface ICreate extends Groups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
             return createProps(Company.class,
@@ -56,11 +56,11 @@ public class Company extends BaseModeId {
         return null;
     }
 
-    public interface TestGroup extends BaseGroups.IGroup {
+    public interface TestGroup extends Groups.IGroup {
 
     }
 
-    public interface TestGroup2 extends BaseGroups.IGroup {
+    public interface TestGroup2 extends Groups.IGroup {
 
     }
 }

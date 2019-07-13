@@ -2,7 +2,7 @@ package com.github.madz0.springbinder.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.madz0.springbinder.App;
-import com.github.madz0.springbinder.binding.BindUtils;
+import com.github.madz0.springbinder.binding.BindingUtils;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.config.Config;
 import com.github.madz0.springbinder.model.*;
@@ -66,7 +66,7 @@ public class JsonBindingTest extends BaseTest {
         LocalTime lt = LocalTime.of(10, 11, 11);
         Time t = Time.valueOf(lt);
 
-        BindUtils.group.set(ICreate1.class);
+        BindingUtils.group.set(ICreate1.class);
         String data = "{\n" +
                 "\"name\":\"My company\",\n" +
                 "\"city\":{\n" +
@@ -87,10 +87,10 @@ public class JsonBindingTest extends BaseTest {
                 "}]}";
         Company root;
         try {
-            BindUtils.group.set(ICreate1.class);
+            BindingUtils.group.set(ICreate1.class);
             root = mapper.readValue(data, Company.class);
         } finally {
-            BindUtils.group.remove();
+            BindingUtils.group.remove();
         }
         assertEquals("My company", root.getName());
         assertEquals(city.getId(), root.getCity().getId());
@@ -158,12 +158,12 @@ public class JsonBindingTest extends BaseTest {
                 "  }}]\n" +
                 "}]}";
         try {
-            BindUtils.group.set(ICreate2.class);
-            BindUtils.updating.set(true);
+            BindingUtils.group.set(ICreate2.class);
+            BindingUtils.updating.set(true);
             root = mapper.readValue(data, Company.class);
         } finally {
-            BindUtils.group.remove();
-            BindUtils.updating.remove();
+            BindingUtils.group.remove();
+            BindingUtils.updating.remove();
         }
         assertEquals("My company", root.getName());
         assertEquals(city.getId(), root.getCity().getId());
@@ -231,18 +231,18 @@ public class JsonBindingTest extends BaseTest {
                 "\t}]\n" +
                 "}";
         try {
-            BindUtils.group.set(EditEmployee.class);
-            BindUtils.updating.set(true);
+            BindingUtils.group.set(EditEmployee.class);
+            BindingUtils.updating.set(true);
             Employee root = mapper.readValue(data, Employee.class);
             root = employeeRepository.save(root);
             assertEquals(2, root.getEmployeeParkings().size());
         } finally {
-            BindUtils.group.remove();
-            BindUtils.updating.remove();
+            BindingUtils.group.remove();
+            BindingUtils.updating.remove();
         }
     }
 
-    public interface ICreate1 extends BaseGroups.ICreate {
+    public interface ICreate1 extends Groups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
             return createProps(Company.class, field("name"),
@@ -257,7 +257,7 @@ public class JsonBindingTest extends BaseTest {
         }
     }
 
-    public interface ICreate2 extends BaseGroups.ICreate {
+    public interface ICreate2 extends Groups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
             return createProps(Company.class, field("id"), field("name"),
@@ -270,7 +270,7 @@ public class JsonBindingTest extends BaseTest {
         }
     }
 
-    public interface ICreate3 extends BaseGroups.ICreate {
+    public interface ICreate3 extends Groups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
             return props(model("company", field("name"),
@@ -285,7 +285,7 @@ public class JsonBindingTest extends BaseTest {
         }
     }
 
-    public interface EditEmployee extends BaseGroups.IEdit {
+    public interface EditEmployee extends Groups.IEdit {
         @Override
         default Set<IProperty> getProperties() {
             return editProps(Employee.class, model("employeeParkings",

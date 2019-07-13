@@ -2,8 +2,8 @@ package com.github.madz0.springbinder.binding.rest.serialize;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import com.github.madz0.springbinder.binding.BindUtils;
-import com.github.madz0.springbinder.model.BaseGroups;
+import com.github.madz0.springbinder.binding.BindingUtils;
+import com.github.madz0.springbinder.model.Groups;
 import com.github.madz0.springbinder.validation.ValidationError;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -21,7 +21,7 @@ public class RestResultFactory<T> {
     private T result;
     @JsonIgnore
     @Getter(value = AccessLevel.NONE)
-    public Class<? extends BaseGroups.IGroup> group;
+    public Class<? extends Groups.IGroup> group;
     private HttpStatus status;
     private List<ValidationError> errors;
     private String serviceErrorCause;
@@ -39,12 +39,12 @@ public class RestResultFactory<T> {
         return new RestResultBody(body);
     }
 
-    public static <T> RestResultBody okay(T result, Class<? extends BaseGroups.IGroup> group) {
+    public static <T> RestResultBody okay(T result, Class<? extends Groups.IGroup> group) {
         RestResultFactory<T> body = new RestResultFactory<>();
         body.status = HttpStatus.OK;
         body.result = result;
         body.group = group;
-        BindUtils.initialize(result, group);
+        BindingUtils.initialize(result, group);
         return new RestResultBody(body);
     }
 

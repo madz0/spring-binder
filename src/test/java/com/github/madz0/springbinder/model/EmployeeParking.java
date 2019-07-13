@@ -11,7 +11,7 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-public class EmployeeParking extends BaseModel implements IBaseModelId<EmployeeParkingId> {
+public class EmployeeParking extends BaseModel implements IdModel<EmployeeParkingId> {
     @EmbeddedId
     private EmployeeParkingId id;
 

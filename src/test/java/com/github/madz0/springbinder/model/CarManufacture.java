@@ -12,7 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-public class CarManufacture extends BaseModeId {
+public class CarManufacture extends IdBaseModel {
 
     @Column
     String name;

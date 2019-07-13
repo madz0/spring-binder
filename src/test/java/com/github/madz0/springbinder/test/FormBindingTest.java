@@ -424,7 +424,7 @@ public class FormBindingTest extends BaseTest {
         assertNotNull(city.getCreatedDate());
     }
 
-    public interface ICreate1 extends BaseGroups.ICreate {
+    public interface ICreate1 extends Groups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
             return createProps(Company.class, field("name"),
@@ -439,7 +439,7 @@ public class FormBindingTest extends BaseTest {
         }
     }
 
-    public interface ICreate2 extends BaseGroups.ICreate {
+    public interface ICreate2 extends Groups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
             return createProps(Company.class, field("name"),
@@ -453,7 +453,7 @@ public class FormBindingTest extends BaseTest {
         }
     }
 
-    public interface ICreate3 extends BaseGroups.ICreate {
+    public interface ICreate3 extends Groups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
             return props(model("company", field("name"),
@@ -468,7 +468,7 @@ public class FormBindingTest extends BaseTest {
         }
     }
 
-    public interface EditEmployee extends BaseGroups.IEdit {
+    public interface EditEmployee extends Groups.IEdit {
         @Override
         default Set<IProperty> getProperties() {
             return editProps(Employee.class, model("employeeParkings",
@@ -477,7 +477,7 @@ public class FormBindingTest extends BaseTest {
         }
     }
 
-    public interface BindAsDtoTestGroup extends BaseGroups.ICreate {
+    public interface BindAsDtoTestGroup extends Groups.ICreate {
         @Override
         default Set<IProperty> getProperties() {
             return createProps(Company.class, field("name"),

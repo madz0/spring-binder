@@ -12,7 +12,7 @@ import java.time.LocalTime;
 @Setter
 @EntityListeners(BaseModel.AuditListener.class)
 @MappedSuperclass
-public abstract class BaseModel implements IBaseModel<Long>, Serializable {
+public abstract class BaseModel implements IModel<Long>, Serializable {
 
     @Version
     protected Long version;

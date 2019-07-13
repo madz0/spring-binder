@@ -8,7 +8,6 @@ import mockit.Invocation;
 import mockit.Mock;
 import mockit.MockUp;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -316,5 +315,18 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         assertTrue(mvcResult.getResponse().getContentAsString().startsWith("{\"result\":{\"someMap\":{\"test2\":\"Mohammad2"));
+    }
+
+    @Test
+    public void mapInsideListBindTest() throws Exception {
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add(URLEncoder.encode("mapList[0][test1]", "UTF-8") + "=" + URLEncoder.encode("X1", "UTF-8"));
+        bindingList.add(URLEncoder.encode("mapList[1][test2]", "UTF-8") + "=" + URLEncoder.encode("X2", "UTF-8"));
+        MvcResult mvcResult = mockMvc.perform(post(BASE_URL + "dto")
+                .content(String.join("&", bindingList))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertTrue(mvcResult.getResponse().getContentAsString().startsWith("{\"result\":{\"mapList\":[{\"test1\":\"X1\"},{\"test2\":\"X2\"}]},\"status\":\"OK\"}"));
     }
 }

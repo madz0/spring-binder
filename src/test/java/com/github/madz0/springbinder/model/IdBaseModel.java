@@ -11,7 +11,7 @@ import javax.persistence.MappedSuperclass;
 @Getter
 @Setter
 @MappedSuperclass
-public abstract class BaseModeId extends BaseModel implements IBaseModelId<Long> {
+public abstract class IdBaseModel extends BaseModel implements IdModel<Long> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     protected Long id;

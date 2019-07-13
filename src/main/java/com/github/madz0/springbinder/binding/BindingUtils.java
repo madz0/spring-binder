@@ -2,8 +2,8 @@ package com.github.madz0.springbinder.binding;
 
 import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
-import com.github.madz0.springbinder.model.BaseGroups;
-import com.github.madz0.springbinder.model.IBaseModel;
+import com.github.madz0.springbinder.model.Groups;
+import com.github.madz0.springbinder.model.IModel;
 import javassist.util.proxy.ProxyFactory;
 import lombok.SneakyThrows;
 import org.hibernate.Hibernate;
@@ -18,13 +18,13 @@ import javax.persistence.criteria.Root;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
-public class BindUtils {
+public class BindingUtils {
     private static final Map<Class<?>, BeanWrapperImpl> beanWrapperMap = new HashMap<>();
-    public static final ThreadLocal<Class<? extends BaseGroups.IGroup>> group = ThreadLocal.withInitial(() -> null);
+    public static final ThreadLocal<Class<? extends Groups.IGroup>> group = ThreadLocal.withInitial(() -> null);
     public static final ThreadLocal<Boolean> updating = ThreadLocal.withInitial(() -> false);
     private static final ThreadLocal<Stack<Set<IProperty>>> currentProperties = ThreadLocal.withInitial(Stack::new);
     public static final ThreadLocal<EntityGraph<?>> entityGraph = ThreadLocal.withInitial(() -> null);
-    public static final ThreadLocal<Boolean> bindAsDto = ThreadLocal.withInitial(() -> false);
+    public static final ThreadLocal<Boolean> dtoBinding = ThreadLocal.withInitial(() -> false);
 
     public interface RunnableWithException {
         void run() throws Throwable;
@@ -49,7 +49,7 @@ public class BindUtils {
     }
 
 
-    private BindUtils() {
+    private BindingUtils() {
     }
 
     @SneakyThrows
@@ -84,15 +84,15 @@ public class BindUtils {
         }
     }
 
-    private static Map<Class<? extends BaseGroups.IGroup>, Set<IProperty>> groupMap = new HashMap<>();
+    private static Map<Class<? extends Groups.IGroup>, Set<IProperty>> groupMap = new HashMap<>();
 
     @SneakyThrows
     @SuppressWarnings("unchecked")
-    public static synchronized Set<IProperty> getPropertiesFromGroup(Class<? extends BaseGroups.IGroup> group) {
+    public static synchronized Set<IProperty> getPropertiesFromGroup(Class<? extends Groups.IGroup> group) {
         if (!groupMap.containsKey(group)) {
             ProxyFactory proxyFactory = new ProxyFactory();
             proxyFactory.setInterfaces(new Class[]{group});
-            BaseGroups.IGroup target = (BaseGroups.IGroup) proxyFactory.create(null, null);
+            Groups.IGroup target = (Groups.IGroup) proxyFactory.create(null, null);
             groupMap.put(group, target.getProperties());
         }
         return groupMap.get(group);
@@ -113,7 +113,7 @@ public class BindUtils {
         return beanWrapperMap.get(clazz);
     }
 
-    public static void initialize(Object model, Class<? extends BaseGroups.IGroup> group) {
+    public static void initialize(Object model, Class<? extends Groups.IGroup> group) {
         if (group != null) {
             Set<IProperty> properties = getPropertiesFromGroup(group);
             initialize(model, properties);
@@ -122,7 +122,7 @@ public class BindUtils {
 
     @SneakyThrows
     private static void initialize(Object model, Set<IProperty> properties) {
-        if (model instanceof IBaseModel) {
+        if (model instanceof IModel) {
             BeanWrapper beanWrapper = getBeanWrapper(model.getClass());
             for (IProperty property : properties) {
                 Object nested = beanWrapper.getPropertyDescriptor(property.getName()).getReadMethod().invoke(model);

@@ -1,9 +1,8 @@
 package com.github.madz0.springbinder.binding.rest.annotation;
 
 import com.github.madz0.springbinder.binding.DefaultEntityManagerBeanNameProvider;
-import com.github.madz0.springbinder.model.BaseGroups;
+import com.github.madz0.springbinder.model.Groups;
 
-import java.io.Serializable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
@@ -15,7 +14,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 public @interface RestObject {
     String entityManagerBean() default DefaultEntityManagerBeanNameProvider.DEFAULT_NAME;
     String[] entityGraph() default {};
-    Class<? extends BaseGroups.IGroup> group() default BaseGroups.IGroup.class;
+    Class<? extends Groups.IGroup> group() default Groups.IGroup.class;
     boolean isUpdating() default false;
-    boolean bindAsDto() default false;
+    boolean dtoBinding() default false;
 }

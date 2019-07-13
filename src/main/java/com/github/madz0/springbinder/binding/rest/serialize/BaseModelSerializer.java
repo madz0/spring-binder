@@ -12,9 +12,9 @@ import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 import com.fasterxml.jackson.databind.ser.PropertyWriter;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
-import com.github.madz0.springbinder.binding.BindUtils;
+import com.github.madz0.springbinder.binding.BindingUtils;
 import com.github.madz0.springbinder.binding.property.IProperty;
-import com.github.madz0.springbinder.model.IBaseModel;
+import com.github.madz0.springbinder.model.IModel;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.IteratorUtils;
 
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 import static com.fasterxml.jackson.core.JsonToken.START_OBJECT;
 
 @Slf4j
-public class BaseModelSerializer<T extends IBaseModel> extends StdSerializer<T> {
+public class BaseModelSerializer<T extends IModel> extends StdSerializer<T> {
 
     private final Map<String, PropertyWriter> propertyMap;
     private final BeanSerializer serializer;
@@ -42,7 +42,7 @@ public class BaseModelSerializer<T extends IBaseModel> extends StdSerializer<T> 
     @Override
     @SuppressWarnings("unchecked")
     public void serialize(T value, JsonGenerator gen, SerializerProvider provider) throws IOException {
-        if (BindUtils.group.get() == null) {
+        if (BindingUtils.group.get() == null) {
             serializer.serialize(value, gen, provider);
             return;
         }
@@ -52,9 +52,9 @@ public class BaseModelSerializer<T extends IBaseModel> extends StdSerializer<T> 
     }
 
     private void serializeFields(T value, JsonGenerator gen, SerializerProvider provider) {
-        Set<IProperty> properties = BindUtils.peekProperties();
+        Set<IProperty> properties = BindingUtils.peekProperties();
         if (properties == null) {
-            properties = BindUtils.getPropertiesOfCurrentGroup();
+            properties = BindingUtils.getPropertiesOfCurrentGroup();
         }
 
         for (IProperty property : properties) {
@@ -72,7 +72,7 @@ public class BaseModelSerializer<T extends IBaseModel> extends StdSerializer<T> 
     @Override
     public void serializeWithType(T value, JsonGenerator gen, SerializerProvider provider, TypeSerializer typeSer) throws IOException {
         // note: method to call depends on whether this type is serialized as JSON scalar, object or Array!
-        if (BindUtils.group.get() == null) {
+        if (BindingUtils.group.get() == null) {
             serializer.serializeWithType(value, gen, provider, typeSer);
             return;
         }
@@ -86,7 +86,7 @@ public class BaseModelSerializer<T extends IBaseModel> extends StdSerializer<T> 
     public static class BaseModelBeanSerializerModifier extends BeanSerializerModifier {
         @Override
         public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc, JsonSerializer<?> serializer) {
-            if (IBaseModel.class.isAssignableFrom(beanDesc.getBeanClass()) && serializer instanceof BeanSerializer) {
+            if (IModel.class.isAssignableFrom(beanDesc.getBeanClass()) && serializer instanceof BeanSerializer) {
                 return new BaseModelSerializer(beanDesc.getBeanClass(), (BeanSerializer) serializer);
             }
             if (RestResultFactory.class.isAssignableFrom(beanDesc.getBeanClass()) && serializer instanceof BeanSerializer) {
