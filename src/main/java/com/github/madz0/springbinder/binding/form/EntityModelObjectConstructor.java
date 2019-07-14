@@ -62,7 +62,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
     public Object processObjectForGet(OgnlContext context, Object root, OgnlPropertyDescriptor propertyDescriptor,
                                       Object propertyObject, MapNode node) {
         IProperty currentProp = null;
-        if ((root instanceof IdModel) && (!dtoBinding || !(root instanceof Collection)) && !groupStack.isEmpty()) {
+        if (((root instanceof IdModel && !dtoBinding) || !(root instanceof Collection)) && !groupStack.isEmpty()) {
             currentProp = getIProperty(groupStack.peek(), propertyDescriptor.getPropertyName());
             if (currentProp == null) {
                 return propertyObject;
