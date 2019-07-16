@@ -329,4 +329,16 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
                 .andReturn();
         assertTrue(mvcResult.getResponse().getContentAsString().startsWith("{\"result\":{\"mapList\":[{\"test1\":\"X1\"},{\"test2\":\"X2\"}]},\"status\":\"OK\"}"));
     }
+
+    @Test
+    public void nameWithDashTest() throws Exception {
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add(URLEncoder.encode("name-with_underscore", "UTF-8") + "=" + URLEncoder.encode("test", "UTF-8"));
+        MvcResult mvcResult = mockMvc.perform(post(BASE_URL + "anotherDto")
+                .content(String.join("&", bindingList))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertTrue(mvcResult.getResponse().getContentAsString().startsWith("{\"result\":{\"name_with_underscore\":\"test\"},\"status\":\"OK\"}"));
+    }
 }

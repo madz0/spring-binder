@@ -17,4 +17,6 @@ public class SomeDto {
     public String family;
     public Map<String, String> someMap;
     public List<Map<String, X>> mapList;
+
+    public String name_with_underscore;
 }

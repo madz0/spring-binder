@@ -18,4 +18,6 @@ public interface CompanyService {
 	Object update(Company company, BindingResult bindingResult);
 	@RequestMapping("/dto")
 	Object dto(SomeDto someDto, BindingResult bindingResult);
+	@RequestMapping("/anotherDto")
+	Object anotherDto(SomeDto someDto, BindingResult bindingResult);
 }

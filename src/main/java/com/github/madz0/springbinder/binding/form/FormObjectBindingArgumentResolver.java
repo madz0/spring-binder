@@ -130,6 +130,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
             if (idx > 0 && pair.length() >= idx + 1) {
                 key = URLDecoder.decode(pair.substring(0, idx), "UTF-8");
                 value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8");
+                key = convertDashToUnderscore(key);
                 //Fix multi select issue
                 boolean multiSelect = false;
                 String multiSelectIdentifier = null;
@@ -199,6 +200,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
             boolean multiSelect = false;
             String multiSelectIdentifier = null;
             String multiSelectEqualSign = null;
+            key = convertDashToUnderscore(key);
             if (key.contains("[]")) {
                 multiSelect = true;
             }
@@ -249,5 +251,9 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 values.add(new AbstractMap.SimpleImmutableEntry<>(finalKey.substring(finalIdx) + partKey, partValue));
             }
         }
+    }
+
+    private String convertDashToUnderscore(String param) {
+        return param.replaceAll("-", "_");
     }
 }
