@@ -61,6 +61,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     builder.insert(0, '?');
                     Map<String, List<Map.Entry<String, Object>>> params = parsQuery(builder.toString(), name, formObject.fieldsContainRootName());
                     entries = params.get(name);
+                    addMultiParFiles(request, entries == null ? new ArrayList() : entries);
                 }
             } else if (ret instanceof Map) {
                 Map map = (Map) ret;
@@ -71,11 +72,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 }
             }
 
-            if (entries == null) {
-                entries = new ArrayList<>();
-            }
-
-            if (entries.size() > 0) {
+            if (entries != null && entries.size() > 0) {
                 mavContainer.setBinding(parameter.getParameterName(), true);
                 Type type = parameter.getParameterType();
                 OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
