@@ -116,7 +116,7 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         return builder;
     }
 
-    protected void addMultiParFiles(ServletRequest request, List values) {
+    protected void addMultiParFiles(ServletRequest request, Map values) {
         while (!(request instanceof MultipartHttpServletRequest) &&
                 request instanceof HttpServletRequestWrapper) {
             request = ((HttpServletRequestWrapper) request).getRequest();
@@ -125,7 +125,7 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         if (request instanceof MultipartHttpServletRequest) {
             Map<String, MultipartFile> multipartFileMap = ((MultipartHttpServletRequest) request).getFileMap();
             if (multipartFileMap != null) {
-                values.addAll(multipartFileMap.entrySet());
+                values.putAll(multipartFileMap);
             }
         }
     }

@@ -64,6 +64,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 }
             } else if (ret instanceof Map) {
                 Map map = (Map) ret;
+                addMultiParFiles(request, map);
                 if (map.size() > 0) {
                     Map<String, List<Map.Entry<String, Object>>> params = parsQuery(map, name, formObject.fieldsContainRootName());
                     entries = params.get(name);
@@ -73,7 +74,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
             if (entries == null) {
                 entries = new ArrayList<>();
             }
-            addMultiParFiles(request, entries);
+
             if (entries.size() > 0) {
                 mavContainer.setBinding(parameter.getParameterName(), true);
                 Type type = parameter.getParameterType();
