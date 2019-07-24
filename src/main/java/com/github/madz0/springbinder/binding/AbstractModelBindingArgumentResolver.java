@@ -117,9 +117,11 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
     }
 
     protected void addMultiParFiles(ServletRequest request, List values) {
-        while (request instanceof HttpServletRequestWrapper) {
+        while (!(request instanceof MultipartHttpServletRequest) &&
+                request instanceof HttpServletRequestWrapper) {
             request = ((HttpServletRequestWrapper) request).getRequest();
         }
+
         if (request instanceof MultipartHttpServletRequest) {
             Map<String, MultipartFile> multipartFileMap = ((MultipartHttpServletRequest) request).getFileMap();
             if (multipartFileMap != null) {
@@ -128,7 +130,7 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         }
     }
 
-    public <T> EntityGraph<T> createEntityGraph(EntityManager em, Class<T> clazz, String... relations) {
+    protected <T> EntityGraph<T> createEntityGraph(EntityManager em, Class<T> clazz, String... relations) {
         if (relations == null || relations.length == 0) {
             return null;
         }
@@ -157,7 +159,7 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         }
     }
 
-    public BindingResult validateEmptyRequest(MethodParameter parameter, Object value, WebDataBinderFactory binderFactory, NativeWebRequest webRequest) throws Exception {
+    protected BindingResult validateEmptyRequest(MethodParameter parameter, Object value, WebDataBinderFactory binderFactory, NativeWebRequest webRequest) throws Exception {
         String parameterName = parameter.getParameterName();
         WebDataBinder binder = binderFactory.createBinder(webRequest, value, parameterName);
         validateIfApplicable(binder, parameter);
