@@ -52,24 +52,14 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
         }
 
         if (value == null) {
-            Object ret = getServletData(request);
+            Map<String, ? extends Object[]> map = getServletDataAsMap(request);
             FormObject formObject = Objects.requireNonNull(parameter.getParameterAnnotation(FormObject.class), "Wrong parameter for FormObject");
             List<Map.Entry<String, Object>> entries = null;
-            if ((ret instanceof StringBuilder)) {
-                StringBuilder builder = (StringBuilder) ret;
-                if (builder.length() > 0) {
-                    builder.insert(0, '?');
-                    Map<String, List<Map.Entry<String, Object>>> params = parsQuery(builder.toString(), name, formObject.fieldsContainRootName());
-                    entries = params.get(name);
-                    addMultiParFiles(request, entries == null ? new ArrayList() : entries);
-                }
-            } else if (ret instanceof Map) {
-                Map map = (Map) ret;
-                addMultiParFiles(request, map);
-                if (map.size() > 0) {
-                    Map<String, List<Map.Entry<String, Object>>> params = parsQuery(map, name, formObject.fieldsContainRootName());
-                    entries = params.get(name);
-                }
+            map = new LinkedHashMap<>(map);
+            addMultiParFiles(request, (Map) map);
+            if (map.size() > 0) {
+                Map<String, List<Map.Entry<String, Object>>> params = parsQuery(map, name, formObject.fieldsContainRootName());
+                entries = params.get(name);
             }
 
             if (entries != null && entries.size() > 0) {
@@ -102,95 +92,9 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
         return finalizeBinding(parameter, mavContainer, webRequest, binderFactory, name, bindingResult, value);
     }
 
-    private Map<String, List<Map.Entry<String, Object>>> parsQuery(String path, String expectedRoot, Boolean fieldsContainRootName)
-            throws UnsupportedEncodingException {
+    private Map<String, List<Map.Entry<String, Object>>> parsQuery(Map<String, ? extends Object[]> servletParams, String expectedRoot, Boolean fieldsContainRootName) {
         Map<String, List<Map.Entry<String, Object>>> params = new LinkedHashMap<>();
-        if (path == null || !path.startsWith("?")) {
-            return null;
-        }
-        String queryWithoutQuestionMark = path.replaceFirst("\\?", "&");
-        final String[] pairs = queryWithoutQuestionMark.split("&");
-
-        Map<String, AtomicInteger> notIndexedFixMap = new HashMap<>();
-
-        for (String pair : pairs) {
-            if (pair == null || pair.equals("")) {
-                continue;
-            }
-
-            if (pair.startsWith("_")) {
-                continue;
-            }
-
-            final int idx = pair.indexOf("=");
-            String key = null;
-            String value = null;
-            if (idx > 0 && pair.length() >= idx + 1) {
-                key = URLDecoder.decode(pair.substring(0, idx), "UTF-8");
-                value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8");
-                key = convertDashToUnderscore(key);
-                //Fix multi select issue
-                boolean multiSelect = false;
-                String multiSelectIdentifier = null;
-                String multiSelectEqualSign = null;
-                if (key.contains("[]")) {
-                    multiSelect = true;
-                }
-
-                if (!multiSelect) {
-                    Matcher matcher = multiPostWithIdentifierPattern.matcher(key);
-                    if (matcher.find()) {
-                        multiSelect = true;
-                        multiSelectIdentifier = matcher.group(1);
-                        multiSelectEqualSign = matcher.group(2);
-                        key = matcher.replaceFirst("[]");
-                    }
-                }
-
-                if (multiSelect) {
-                    int genIndex = notIndexedFixMap.computeIfAbsent(key, x -> new AtomicInteger(-1)).incrementAndGet();
-                    key = key.replaceFirst("\\[\\]", "[" + genIndex + "]");
-                }
-
-                if (expectedRoot != null && !fieldsContainRootName) {
-                    key = expectedRoot + "." + key;
-                }
-
-                final int bracketIdx = key.indexOf("[");
-                final int dotIdx = key.indexOf(".");
-                int finalIdx = 0;
-                String keyParam = null;
-                if (value == null) {
-                    value = convertNullValue();
-                }
-
-                if (dotIdx == bracketIdx) {
-                    keyParam = key;
-                    params.put(keyParam, new ArrayList<>());
-                } else if (dotIdx != -1 && (bracketIdx == -1 || bracketIdx > dotIdx)) {
-                    keyParam = key.substring(0, dotIdx);
-                    finalIdx = dotIdx + 1;
-                } else {
-                    keyParam = key.substring(0, bracketIdx);
-                    finalIdx = bracketIdx;
-                }
-                List<Map.Entry<String, Object>> values = params.computeIfAbsent(keyParam, k -> new ArrayList<>());
-                if (multiSelectIdentifier != null) {
-                    handleMultiSelect(multiSelectIdentifier, multiSelectEqualSign, value, values, key, finalIdx);
-                    continue;
-                }
-                Map.Entry<String, Object> valueEntry = new AbstractMap.SimpleImmutableEntry<>(key.substring(finalIdx), value);
-                values.add(valueEntry);
-            } else {
-                params.put(pair, Collections.emptyList());
-            }
-        }
-        return params;
-    }
-
-    private Map<String, List<Map.Entry<String, Object>>> parsQuery(Map<String, String[]> servletParams, String expectedRoot, Boolean fieldsContainRootName) {
-        Map<String, List<Map.Entry<String, Object>>> params = new LinkedHashMap<>();
-        for (Map.Entry<String, String[]> pair : servletParams.entrySet()) {
+        for (Map.Entry<String, ? extends Object[]> pair : servletParams.entrySet()) {
             String key = pair.getKey();
             if (key.startsWith("_")) {
                 continue;
@@ -221,12 +125,12 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                     dotIdx != -1 && (bracketIdx == -1 || bracketIdx > dotIdx) ? dotIdx : bracketIdx;
             int genIndex = 0;
             final List<Map.Entry<String, Object>> values = params.computeIfAbsent(finalIdx == -1 ? key : key.substring(0, finalIdx), x -> new ArrayList<>());
-            for (String value : pair.getValue()) {
+            for (Object value : pair.getValue()) {
                 String finalKey = key;
                 if (multiSelect) {
                     finalKey = finalKey.replaceFirst("\\[\\]", "[" + (genIndex++) + "]");
-                    if (multiSelectIdentifier != null) {
-                        handleMultiSelect(multiSelectIdentifier, multiSelectEqualSign, value, values, finalKey, finalIdx + 1);
+                    if (multiSelectIdentifier != null && value instanceof String) {
+                        handleMultiSelect(multiSelectIdentifier, multiSelectEqualSign, (String) value, values, finalKey, finalIdx + 1);
                         continue;
                     }
                 }
@@ -234,10 +138,6 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
             }
         }
         return params;
-    }
-
-    private String convertNullValue() {
-        return "";
     }
 
     private void handleMultiSelect(String multiSelectIdentifier, String multiSelectEqualSign, String value, final List<Map.Entry<String, Object>> values, String finalKey, int finalIdx) {

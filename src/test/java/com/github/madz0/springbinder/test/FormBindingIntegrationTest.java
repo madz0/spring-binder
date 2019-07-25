@@ -341,4 +341,17 @@ public class FormBindingIntegrationTest extends AbstractIntegrationTest {
                 .andReturn();
         assertTrue(mvcResult.getResponse().getContentAsString().startsWith("{\"result\":{\"name_with_underscore\":\"test\"},\"status\":\"OK\"}"));
     }
+
+    @Test
+    public void dtoBindGetTest() throws Exception {
+        final SomeDto someDto = new SomeDto();
+        List<String> bindingList = new ArrayList<>();
+        bindingList.add("name=Mohammad");
+        bindingList.add("family=Mohammad2");
+        MvcResult mvcResult = mockMvc.perform(get(BASE_URL + "dto?" + String.join("&", bindingList))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertTrue(mvcResult.getResponse().getContentAsString().startsWith("{\"result\":{\"name\":\"Mohammad\",\"family\":\"Mohammad2\"},\"status\":\"OK\"}"));
+    }
 }

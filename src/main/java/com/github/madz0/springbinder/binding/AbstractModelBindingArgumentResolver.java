@@ -26,9 +26,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
-import java.util.List;
-import java.util.Map;
+import java.net.URLDecoder;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class AbstractModelBindingArgumentResolver implements HandlerMethodArgumentResolver, HandlerMethodReturnValueHandler {
@@ -99,10 +103,21 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         return value;
     }
 
-    protected Object getServletData(HttpServletRequest request) throws IOException {
-        if (request.getParameterMap().size() > 0) {
-            return request.getParameterMap();
+    protected Map<String, ? extends Object[]> getServletDataAsMap(HttpServletRequest request) throws IOException {
+        if (request.getParameterMap().size() == 0) {
+            request.getParameter("_someParam");
+            if (request.getParameterMap().size() == 0) {
+                StringBuilder sb = getServletDataAsStringBuilder(request);
+                if(request.getQueryString() != null && request.getQueryString().length() > 0) {
+                    sb.append('&').append(request.getQueryString());
+                }
+                return parsQuery(sb.toString());
+            }
         }
+        return request.getParameterMap();
+    }
+
+    protected StringBuilder getServletDataAsStringBuilder(HttpServletRequest request) throws IOException {
         StringBuilder builder = new StringBuilder();
         if (request.getContentLength() > 0) {
             try (BufferedReader br = request.getReader()) {
@@ -116,32 +131,22 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         return builder;
     }
 
-    private Map<String, MultipartFile> getMultiParFiles(ServletRequest request) {
+    private Map<String, List<MultipartFile>> getMultiParFiles(ServletRequest request) {
         while (!(request instanceof MultipartHttpServletRequest) &&
                 request instanceof HttpServletRequestWrapper) {
             request = ((HttpServletRequestWrapper) request).getRequest();
         }
 
         if (request instanceof MultipartHttpServletRequest) {
-            Map<String, MultipartFile> multipartFileMap = ((MultipartHttpServletRequest) request).getFileMap();
-            if (multipartFileMap != null) {
-                return multipartFileMap;
-            }
+            return ((MultipartHttpServletRequest) request).getMultiFileMap();
         }
         return null;
     }
 
-    protected void addMultiParFiles(ServletRequest request, Map values) {
-        Map multipartFileMap = getMultiParFiles(request);
+    protected void addMultiParFiles(ServletRequest request, Map<String, Object[]> values) {
+        Map<String, List<MultipartFile>> multipartFileMap = getMultiParFiles(request);
         if (multipartFileMap != null) {
-            values.putAll(multipartFileMap);
-        }
-    }
-
-    protected void addMultiParFiles(ServletRequest request, List values) {
-        Map multipartFileMap = getMultiParFiles(request);
-        if (multipartFileMap != null) {
-            values.addAll(multipartFileMap.entrySet());
+            values.putAll(multipartFileMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, x -> x.getValue().toArray())));
         }
     }
 
@@ -179,5 +184,43 @@ public abstract class AbstractModelBindingArgumentResolver implements HandlerMet
         WebDataBinder binder = binderFactory.createBinder(webRequest, value, parameterName);
         validateIfApplicable(binder, parameter);
         return binder.getBindingResult();
+    }
+
+    private Map<String, String[]> parsQuery(String path)
+            throws UnsupportedEncodingException {
+        Map<String, List<String>> params = new LinkedHashMap<>();
+        if (path == null) {
+            return null;
+        }
+        if (path.startsWith("?")) {
+            path = path.replaceFirst("\\?", "");
+        }
+        final String[] pairs = path.split("&");
+
+        for (String pair : pairs) {
+            if (pair == null || pair.equals("")) {
+                continue;
+            }
+
+            final int idx = pair.indexOf("=");
+            String key;
+            String value;
+            if (idx > 0 && pair.length() >= idx + 1) {
+                key = URLDecoder.decode(pair.substring(0, idx), "UTF-8");
+                value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8");
+                if (value == null) {
+                    value = convertNullValue();
+                }
+                List<String> values = params.computeIfAbsent(key, k -> new ArrayList<>());
+                values.add(value);
+            } else {
+                params.put(pair, Collections.emptyList());
+            }
+        }
+        return params.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, x -> x.getValue().toArray(new String[0])));
+    }
+
+    protected String convertNullValue() {
+        return "";
     }
 }
