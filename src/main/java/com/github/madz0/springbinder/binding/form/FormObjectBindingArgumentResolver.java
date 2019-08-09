@@ -46,7 +46,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
         String name = parameter.getParameterName();
         BindingResult bindingResult = null;
         Object value = null;
-        WebDataBinder binder = null;
+        WebDataBinder binder;
         if (mavContainer.containsAttribute(name)) {
             value = mavContainer.getModel().get(name);
         }
@@ -66,7 +66,7 @@ public class FormObjectBindingArgumentResolver extends AbstractModelBindingArgum
                 mavContainer.setBinding(parameter.getParameterName(), true);
                 Type type = parameter.getParameterType();
                 OgnlContext context = (OgnlContext) Ognl.createDefaultContext(null, new DefaultMemberAccess(false));
-                Class cls = null;
+                Class cls;
                 if (type instanceof ParameterizedType) {
                     ParameterizedType pType = (ParameterizedType) type;
                     cls = (Class) pType.getRawType();
