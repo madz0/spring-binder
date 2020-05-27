@@ -1,42 +1,36 @@
 package com.github.madz0.springbinder.binding.rest.serialize;
 
+import static com.fasterxml.jackson.core.JsonToken.START_OBJECT;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.type.WritableTypeId;
-import com.fasterxml.jackson.databind.BeanDescription;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializationConfig;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.fasterxml.jackson.databind.ser.BeanSerializer;
-import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 import com.fasterxml.jackson.databind.ser.PropertyWriter;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-
 import com.github.madz0.springbinder.binding.BindingUtils;
 import com.github.madz0.springbinder.binding.property.IProperty;
-import com.github.madz0.springbinder.model.IModel;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.IteratorUtils;
-
+import com.github.madz0.springbinder.model.Model;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static com.fasterxml.jackson.core.JsonToken.START_OBJECT;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.IteratorUtils;
 
 @Slf4j
-public class BaseModelSerializer<T extends IModel> extends StdSerializer<T> {
+public class IdModelSerializer<T extends Model> extends StdSerializer<T> {
 
     private final Map<String, PropertyWriter> propertyMap;
     private final BeanSerializer serializer;
 
-    public BaseModelSerializer(Class<T> t, BeanSerializer beanSerializer) {
+    public IdModelSerializer(Class<T> t, BeanSerializer beanSerializer) {
         super(t);
         this.serializer = beanSerializer;
         this.propertyMap = IteratorUtils.toList(beanSerializer.properties())
-                .stream()
-                .collect(Collectors.toMap(PropertyWriter::getName, x -> x));
+            .stream()
+            .collect(Collectors.toMap(PropertyWriter::getName, x -> x));
     }
 
     @Override
@@ -70,7 +64,8 @@ public class BaseModelSerializer<T extends IModel> extends StdSerializer<T> {
     }
 
     @Override
-    public void serializeWithType(T value, JsonGenerator gen, SerializerProvider provider, TypeSerializer typeSer) throws IOException {
+    public void serializeWithType(T value, JsonGenerator gen, SerializerProvider provider, TypeSerializer typeSer)
+        throws IOException {
         // note: method to call depends on whether this type is serialized as JSON scalar, object or Array!
         if (BindingUtils.group.get() == null) {
             serializer.serializeWithType(value, gen, provider, typeSer);
@@ -80,22 +75,5 @@ public class BaseModelSerializer<T extends IModel> extends StdSerializer<T> {
         typeSer.writeTypePrefix(gen, typeId);
         serializeFields(value, gen, provider);
         typeSer.writeTypeSuffix(gen, typeId);
-    }
-
-    @SuppressWarnings("unchecked")
-    public static class BaseModelBeanSerializerModifier extends BeanSerializerModifier {
-        @Override
-        public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc, JsonSerializer<?> serializer) {
-            if (IModel.class.isAssignableFrom(beanDesc.getBeanClass()) && serializer instanceof BeanSerializer) {
-                return new BaseModelSerializer(beanDesc.getBeanClass(), (BeanSerializer) serializer);
-            }
-            if (RestResultFactory.class.isAssignableFrom(beanDesc.getBeanClass()) && serializer instanceof BeanSerializer) {
-                return new BaseResultBodySerializer((BeanSerializer) serializer);
-            }
-            if (ContextAwareObjectMapper.getContext().getBeansOfType(beanDesc.getBeanClass()).size() > 0) {
-                return new SpringProxySerializer(beanDesc.getBeanClass(), serializer);
-            }
-            return super.modifySerializer(config, beanDesc, serializer);
-        }
     }
 }

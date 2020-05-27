@@ -5,6 +5,7 @@ import com.github.madz0.ognl2.OgnlRuntime;
 import com.github.madz0.springbinder.binding.AbstractModelBindingArgumentResolver;
 import com.github.madz0.springbinder.binding.BindingUtils;
 import com.github.madz0.springbinder.binding.rest.annotation.RestObject;
+import java.util.Objects;
 import org.springframework.core.MethodParameter;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
@@ -18,7 +19,7 @@ import java.util.Map;
 
 public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgumentResolver {
 
-    private ObjectMapper mapper;
+    private final ObjectMapper mapper;
 
     public RestObjectBindingArgumentResolver(Map<String, EntityManager> emMap, ObjectMapper mapper) {
         super(emMap);
@@ -33,36 +34,40 @@ public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgum
     @Override
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
-        String name = parameter.getParameterName();
+        String name = Objects.requireNonNull(parameter.getParameterName());
         BindingResult bindingResult = null;
         Object value = null;
-        WebDataBinder binder = null;
-        if (mavContainer.containsAttribute(name)) {
+        if (Objects.requireNonNull(mavContainer).containsAttribute(name)) {
             value = mavContainer.getModel().get(name);
         }
 
         if (value == null) {
             StringBuilder builder = getServletDataAsStringBuilder(request);
             if (builder.length() > 0) {
-                RestObject restObject = parameter.getParameterAnnotation(RestObject.class);
+                RestObject restObject = Objects.requireNonNull(parameter.getParameterAnnotation(RestObject.class));
                 try {
                     EntityManager em = emMap.get(restObject.entityManagerBean());
-                    BindingUtils.group.set(restObject.group());
-                    BindingUtils.updating.set(restObject.isUpdating());
-                    BindingUtils.entityGraph.set(createEntityGraph(em, parameter.getParameterType(), restObject.entityGraph()));
-                    BindingUtils.dtoBinding.set(restObject.dtoBinding());
+                    //BindingUtils.group.set(restObject.group());
+                    BindingUtils.setGroup(mapper.getDeserializationContext(), restObject.group());
+                    //BindingUtils.updating.set(restObject.isUpdating());
+                    BindingUtils.setModifying(mapper.getDeserializationContext(), restObject.isUpdating());
+                    //BindingUtils.entityGraph.set(createEntityGraph(em, parameter.getParameterType(), restObject.entityGraph()));
+                    BindingUtils.setEntityGraph(mapper.getDeserializationContext(), createEntityGraph(em, parameter.getParameterType(), restObject.entityGraph()));
+                    //BindingUtils.dtoBinding.set(restObject.dtoBinding());
+                    BindingUtils.setDtoBinding(mapper.getDeserializationContext(),restObject.dtoBinding());
+
                     value = mapper.readValue(builder.toString(), parameter.getParameterType());
-                    binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
+                    WebDataBinder binder = binderFactory.createBinder(webRequest, value, parameter.getParameterName());
                     validateIfApplicable(binder, parameter);
                     bindingResult = binder.getBindingResult();
                 } finally {
-                    BindingUtils.group.remove();
-                    BindingUtils.updating.remove();
-                    BindingUtils.entityGraph.remove();
-                    BindingUtils.dtoBinding.remove();
+//                    BindingUtils.group.remove();
+//                    BindingUtils.updating.remove();
+//                    BindingUtils.entityGraph.remove();
+//                    BindingUtils.dtoBinding.remove();
                 }
             } else {
-                Class pClass = parameter.getParameterType();
+                Class<?> pClass = parameter.getParameterType();
                 value = OgnlRuntime.createProperObject(pClass, pClass.getComponentType());
                 bindingResult = validateEmptyRequest(parameter, value, binderFactory, webRequest);
             }
@@ -77,6 +82,6 @@ public class RestObjectBindingArgumentResolver extends AbstractModelBindingArgum
 
     @Override
     public void handleReturnValue(Object returnValue, MethodParameter returnType, ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws Exception {
-
+        //
     }
 }

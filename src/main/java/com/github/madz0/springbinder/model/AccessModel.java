@@ -1,9 +1,11 @@
 package com.github.madz0.springbinder.model;
 
+import com.github.madz0.springbinder.processor.annotation.FieldExtractor;
+
+@FieldExtractor(as = "AccessModelFields")
 public interface AccessModel {
-    String ACCESS_FIELD = "access";
 
     default String[] getAccess() {
-        return null;
+        return new String[]{};
     }
 }

@@ -1,9 +1,10 @@
 package com.github.madz0.springbinder.binding;
 
+import com.fasterxml.jackson.databind.DeserializationContext;
 import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.Groups;
-import com.github.madz0.springbinder.model.IModel;
+import com.github.madz0.springbinder.model.Model;
 import javassist.util.proxy.ProxyFactory;
 import lombok.SneakyThrows;
 import org.hibernate.Hibernate;
@@ -20,11 +21,11 @@ import java.util.*;
 
 public class BindingUtils {
     private static final Map<Class<?>, BeanWrapperImpl> beanWrapperMap = new HashMap<>();
-    public static final ThreadLocal<Class<? extends Groups.IGroup>> group = ThreadLocal.withInitial(() -> null);
-    public static final ThreadLocal<Boolean> updating = ThreadLocal.withInitial(() -> false);
-    private static final ThreadLocal<Stack<Set<IProperty>>> currentProperties = ThreadLocal.withInitial(Stack::new);
-    public static final ThreadLocal<EntityGraph<?>> entityGraph = ThreadLocal.withInitial(() -> null);
-    public static final ThreadLocal<Boolean> dtoBinding = ThreadLocal.withInitial(() -> false);
+    //public static final ThreadLocal<Class<? extends Groups.IGroup>> group = ThreadLocal.withInitial(() -> null);
+    //public static final ThreadLocal<Boolean> updating = ThreadLocal.withInitial(() -> false);
+    //private static final ThreadLocal<Stack<Set<IProperty>>> currentProperties = ThreadLocal.withInitial(Stack::new);
+    //public static final ThreadLocal<EntityGraph<?>> entityGraph = ThreadLocal.withInitial(() -> null);
+    //public static final ThreadLocal<Boolean> dtoBinding = ThreadLocal.withInitial(() -> false);
 
     public interface RunnableWithException {
         void run() throws Throwable;
@@ -122,7 +123,7 @@ public class BindingUtils {
 
     @SneakyThrows
     private static void initialize(Object model, Set<IProperty> properties) {
-        if (model instanceof IModel) {
+        if (model instanceof Model) {
             BeanWrapper beanWrapper = getBeanWrapper(model.getClass());
             for (IProperty property : properties) {
                 Object nested = beanWrapper.getPropertyDescriptor(property.getName()).getReadMethod().invoke(model);
@@ -158,5 +159,37 @@ public class BindingUtils {
 
     public static <Y> Path<Y> findPathFetch(Path<Y> path, String field) {
         return findPath(path, field, true);
+    }
+
+    public static void setGroup(DeserializationContext context, Class<? extends Groups.IGroup> group) {
+        context.setAttribute("group", group);
+    }
+
+    public static Class<? extends Groups.IGroup> getGroup(DeserializationContext context) {
+        return (Class<? extends Groups.IGroup>) context.getAttribute("group");
+    }
+
+    public static void setModifying(DeserializationContext context, boolean isModifying) {
+        context.setAttribute("modifying", isModifying);
+    }
+
+    public static Boolean isModifying(DeserializationContext context) {
+        return (Boolean) context.getAttribute("modifying");
+    }
+
+    public static void setEntityGraph(DeserializationContext context, EntityGraph<?> entityGraph) {
+        context.setAttribute("entityGraph", entityGraph);
+    }
+
+    public static EntityGraph<?> getEntityGraph(DeserializationContext context) {
+        return (EntityGraph<?>) context.getAttribute("entityGraph");
+    }
+
+    public static void setDtoBinding(DeserializationContext context, boolean isModifying) {
+        context.setAttribute("dtoBinding", isModifying);
+    }
+
+    public static Boolean getDtoBinding(DeserializationContext context) {
+        return (Boolean) context.getAttribute("dtoBinding");
     }
 }

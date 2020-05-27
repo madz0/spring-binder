@@ -23,7 +23,7 @@ public class Groups {
         }
 
         @SuppressWarnings("unchecked")
-        default Set<IProperty> allProps(Class<? extends IModel> clazz) {
+        default Set<IProperty> allProps(Class<? extends Model> clazz) {
             return Arrays.stream(BindingUtils.getBeanWrapper(clazz).getPropertyDescriptors())
                     .filter(x ->
                             !Objects.equals(x.getName(), "class") &&
@@ -32,27 +32,27 @@ public class Groups {
                     .map(x -> {
                         if (Collection.class.isAssignableFrom(x.getPropertyType())) {
                             Class<?> genericClass = (Class) ((ParameterizedType) x.getReadMethod().getGenericReturnType()).getActualTypeArguments()[0];
-                            if (IModel.class.isAssignableFrom(genericClass)) {
-                                Class<? extends IModel> baseModelGeneric = (Class<? extends IModel>) genericClass;
+                            if (Model.class.isAssignableFrom(genericClass)) {
+                                Class<? extends Model> baseModelGeneric = (Class<? extends Model>) genericClass;
                                 return ComputedModelProperty.of(clazz, x.getReadMethod().getName(),
-                                        props(field(IdModel.ID_FIELD), computed(baseModelGeneric, IModel::getPresentation)));
+                                        props(field(IdModelFields.ID), computed(baseModelGeneric, Model::getPresentation)));
                             }
                         }
-                        if (IModel.class.isAssignableFrom(x.getPropertyType())) {
-                            Class<? extends IModel> genericClass = (Class<? extends IModel>) x.getPropertyType();
+                        if (Model.class.isAssignableFrom(x.getPropertyType())) {
+                            Class<? extends Model> genericClass = (Class<? extends Model>) x.getPropertyType();
                             return ComputedModelProperty.of(clazz, x.getReadMethod().getName(),
-                                    props(field(IdModel.ID_FIELD), computed(genericClass, IModel::getPresentation)));
+                                    props(field(IdModelFields.ID), computed(genericClass, Model::getPresentation)));
                         }
                         return ComputedProperty.of(clazz, x.getReadMethod().getName());
                     })
                     .collect(Collectors.toSet());
         }
 
-        default Set<IProperty> allPropsExcept(Class<? extends IModel> clazz, IProperty... ignore) {
+        default Set<IProperty> allPropsExcept(Class<? extends Model> clazz, IProperty... ignore) {
             return allPropsExcept(clazz, props(ignore));
         }
 
-        default Set<IProperty> allPropsExcept(Class<? extends IModel> clazz, Set<IProperty> ignore) {
+        default Set<IProperty> allPropsExcept(Class<? extends Model> clazz, Set<IProperty> ignore) {
             return allProps(clazz).stream()
                     .filter(x -> ignore.stream().noneMatch(y -> Objects.equals(x, y)))
                     .collect(Collectors.toSet());
@@ -98,46 +98,46 @@ public class Groups {
     public interface IList extends IGroup {
         @Override
         default Set<IProperty> getProperties() {
-            return props(field(IdModel.ID_FIELD));
+            return props(field(IdModelFields.ID));
         }
 
-        default Set<IProperty> listProps(Class<? extends IModel> clazz, IProperty... props) {
-            return Stream.concat(Stream.of(field(IdModel.ID_FIELD), computed(clazz, IModel::getPresentation),
+        default Set<IProperty> listProps(Class<? extends Model> clazz, IProperty... props) {
+            return Stream.concat(Stream.of(field(IdModelFields.ID), computed(clazz, Model::getPresentation),
                     computed(clazz, AccessModel::getAccess)), Arrays.stream(props)).collect(Collectors.toSet());
         }
 
-        default Set<IProperty> allListProps(Class<? extends IModel> clazz) {
+        default Set<IProperty> allListProps(Class<? extends Model> clazz) {
             return allListPropsExcept(clazz);
         }
 
-        default Set<IProperty> allListPropsExcept(Class<? extends IModel> clazz, IProperty... ignore) {
-            return allPropsExcept(clazz, Stream.concat(Stream.of(field(IModel.VERSION_FIELD), field(IModel.CREATED_BY_FIELD),
-                    field(IModel.MODIFIED_BY_FIELD), field(IModel.CREATED_DATE_FIELD), field(IModel.MODIFIED_DATE_FIELD)),
+        default Set<IProperty> allListPropsExcept(Class<? extends Model> clazz, IProperty... ignore) {
+            return allPropsExcept(clazz, Stream.concat(Stream.of(field(ModelFields.VERSION), field(ModelFields.CREATED_BY),
+                    field(ModelFields.MODIFIED_BY), field(ModelFields.CREATED_DATE), field(ModelFields.MODIFIED_DATE)),
                     Arrays.stream(ignore)).collect(Collectors.toSet()));
         }
     }
 
     public interface ICreate extends IGroup {
-        default Set<IProperty> createProps(Class<? extends IModel> clazz, IProperty... props) {
+        default Set<IProperty> createProps(Class<? extends Model> clazz, IProperty... props) {
             return props(props);
         }
 
-        default Set<IProperty> allCreateProps(Class<? extends IModel> clazz) {
+        default Set<IProperty> allCreateProps(Class<? extends Model> clazz) {
             return allCreatePropsExcept(clazz);
         }
 
-        default Set<IProperty> allCreatePropsExcept(Class<? extends IModel> clazz, IProperty... ignore) {
+        default Set<IProperty> allCreatePropsExcept(Class<? extends Model> clazz, IProperty... ignore) {
             return allPropsExcept(clazz,
                     Stream.concat(
                             Stream.of(
-                                    field(IdModel.ID_FIELD),
-                                    field(IModel.VERSION_FIELD),
+                                    field(IdModelFields.ID),
+                                    field(ModelFields.VERSION),
                                     computed(clazz, AccessModel::getAccess),
-                                    field(IModel.CREATED_BY_FIELD),
-                                    computed(clazz, IModel::getPresentation),
-                                    field(IModel.MODIFIED_BY_FIELD),
-                                    field(IModel.CREATED_DATE_FIELD),
-                                    field(IModel.MODIFIED_DATE_FIELD)),
+                                    field(ModelFields.CREATED_BY),
+                                    computed(clazz, Model::getPresentation),
+                                    field(ModelFields.MODIFIED_BY),
+                                    field(ModelFields.CREATED_DATE),
+                                    field(ModelFields.MODIFIED_DATE)),
                             Arrays.stream(ignore)).collect(Collectors.toSet()
                     )
             );
@@ -147,30 +147,30 @@ public class Groups {
     public interface IEdit extends IGroup {
         @Override
         default Set<IProperty> getProperties() {
-            return props(field(IdModel.ID_FIELD), field(IModel.VERSION_FIELD));
+            return props(field(IdModelFields.ID), field(ModelFields.VERSION));
         }
 
-        default Set<IProperty> editProps(Class<? extends IModel> clazz, IProperty... props) {
+        default Set<IProperty> editProps(Class<? extends Model> clazz, IProperty... props) {
             return Stream.concat(Stream.of(
-                    field(IdModel.ID_FIELD),
-                    field(IModel.VERSION_FIELD),
-                    computed(clazz, IModel::getPresentation),
+                    field(IdModelFields.ID),
+                    field(ModelFields.VERSION),
+                    computed(clazz, Model::getPresentation),
                     computed(clazz, AccessModel::getAccess)
             ),
                     Arrays.stream(props)).collect(Collectors.toSet());
         }
 
-        default Set<IProperty> allEditProps(Class<? extends IModel> clazz) {
+        default Set<IProperty> allEditProps(Class<? extends Model> clazz) {
             return allEditPropsExcept(clazz);
         }
 
-        default Set<IProperty> allEditPropsExcept(Class<? extends IModel> clazz, IProperty... ignore) {
+        default Set<IProperty> allEditPropsExcept(Class<? extends Model> clazz, IProperty... ignore) {
             return allPropsExcept(clazz, Stream.concat(
                     Stream.of(
-                            field(IModel.CREATED_BY_FIELD),
-                            field(IModel.MODIFIED_BY_FIELD),
-                            field(IModel.CREATED_DATE_FIELD),
-                            field(IModel.MODIFIED_DATE_FIELD)),
+                            field(ModelFields.CREATED_BY),
+                            field(ModelFields.MODIFIED_BY),
+                            field(ModelFields.CREATED_DATE),
+                            field(ModelFields.MODIFIED_DATE)),
                     Arrays.stream(ignore)).collect(Collectors.toSet()));
         }
     }
@@ -178,32 +178,32 @@ public class Groups {
     public interface IView extends IGroup {
         @Override
         default Set<IProperty> getProperties() {
-            return props(field(IdModel.ID_FIELD), field(IModel.CREATED_DATE_FIELD),
-                    field(IModel.MODIFIED_DATE_FIELD), field(IModel.ACCESS_FIELD),
-                    model(IModel.CREATED_BY_FIELD, field(IModel.PRESENTATION_FIELD)),
-                    model(IModel.MODIFIED_BY_FIELD, field(IModel.PRESENTATION_FIELD)));
+            return props(field(IdModelFields.ID), field(ModelFields.CREATED_DATE),
+                    field(ModelFields.MODIFIED_DATE), field(AccessModelFields.ACCESS),
+                    model(ModelFields.CREATED_BY, field(ModelFields.PRESENTATION)),
+                    model(ModelFields.MODIFIED_BY, field(ModelFields.PRESENTATION)));
         }
 
-        default Set<IProperty> viewProps(Class<? extends IModel> clazz, IProperty... props) {
+        default Set<IProperty> viewProps(Class<? extends Model> clazz, IProperty... props) {
             return Stream.concat(
                     Stream.of(
-                            field(IdModel.ID_FIELD),
-                            field(IModel.CREATED_DATE_FIELD),
-                            field(IModel.MODIFIED_DATE_FIELD),
-                            computed(clazz, IModel::getPresentation),
+                            field(IdModelFields.ID),
+                            field(ModelFields.CREATED_DATE),
+                            field(ModelFields.MODIFIED_DATE),
+                            computed(clazz, Model::getPresentation),
                             computed(clazz, AccessModel::getAccess),
-                            model(IModel.CREATED_BY_FIELD, field(IModel.PRESENTATION_FIELD)),
-                            model(IModel.MODIFIED_BY_FIELD, field(IModel.PRESENTATION_FIELD))
+                            model(ModelFields.CREATED_BY, field(ModelFields.PRESENTATION)),
+                            model(ModelFields.MODIFIED_BY, field(ModelFields.PRESENTATION))
                     ),
                     Arrays.stream(props)).collect(Collectors.toSet()
             );
         }
 
-        default Set<IProperty> allViewProps(Class<? extends IModel> clazz) {
+        default Set<IProperty> allViewProps(Class<? extends Model> clazz) {
             return allViewPropsExcept(clazz);
         }
 
-        default Set<IProperty> allViewPropsExcept(Class<? extends IModel> clazz, IProperty... ignore) {
+        default Set<IProperty> allViewPropsExcept(Class<? extends Model> clazz, IProperty... ignore) {
             return allPropsExcept(clazz, props(ignore));
         }
     }
@@ -211,14 +211,14 @@ public class Groups {
     public interface IDelete extends IGroup {
         @Override
         default Set<IProperty> getProperties() {
-            return props(field(IdModel.ID_FIELD));
+            return props(field(IdModelFields.ID));
         }
     }
 
     public interface IDto extends IGroup {
         @Override
         default Set<IProperty> getProperties() {
-            return props(field(IdModel.ID_FIELD), field(IModel.RECORD_TYPE_FIELD));
+            return props(field(IdModelFields.ID), field(ModelFields.RECORD_TYPE));
         }
     }
 }

@@ -9,6 +9,7 @@ import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.Groups;
 import com.github.madz0.springbinder.model.IdModel;
+import com.github.madz0.springbinder.model.IdModelFields;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.util.StringUtils;
@@ -116,7 +117,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
                         } else if (propertyDescriptor.getAnnotation(ManyToMany.class) != null) {
                             dest.clear();
                             for (MapNode collectionNode : node.getChildren().values()) {
-                                dest.add(entityManager.getReference(genericClazz, collectionNode.getMapping(IdModel.ID_FIELD)));
+                                dest.add(entityManager.getReference(genericClazz, collectionNode.getMapping(IdModelFields.ID)));
                             }
                         } else {
                             throw new IllegalStateException("collection field must be OneToMany or ManyToMany");
@@ -254,7 +255,7 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
 
     private Object getId(MapNode node, Class idClass) {
         if (node != null) {
-            MapNode idNode = node.getMapping(IdModel.ID_FIELD);
+            MapNode idNode = node.getMapping(IdModelFields.ID);
             if (idNode != null) {
                 if (idNode.getContainsValue()) {
                     return OgnlOps.convertValue(idNode.getValue(), idClass);
@@ -311,9 +312,9 @@ public class EntityModelObjectConstructor extends DefaultObjectConstructor {
     private Class<?> getIdClass(Class<?> cls) {
         try {
             return idClassMapper != null ? idClassMapper.getIdClassOf(cls) :
-                    OgnlRuntime.getPropertyDescriptor(cls, IdModel.ID_FIELD).getReadMethod().getReturnType();
+                    OgnlRuntime.getPropertyDescriptor(cls, IdModelFields.ID).getReadMethod().getReturnType();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("",e);
             return null;
         }
     }

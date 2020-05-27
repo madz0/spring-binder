@@ -1,6 +1,6 @@
 package com.github.madz0.springbinder.validation;
 
-import com.github.madz0.springbinder.model.IValidate;
+import com.github.madz0.springbinder.model.Validate;
 import com.github.madz0.springbinder.validation.constraint.Unique;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.util.StringUtils;
@@ -46,8 +46,8 @@ public class ValidationUtils {
         }
         List<ValidationError> errors = convertValidationErrors(validationErrors, parentFieldName);
 
-        if(object instanceof IValidate) {
-            List<ValidationError> globalErrors = ((IValidate) object).validate(group);
+        if(object instanceof Validate) {
+            List<ValidationError> globalErrors = ((Validate) object).validate(group);
             errors.addAll(globalErrors);
         }
 
