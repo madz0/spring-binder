@@ -13,8 +13,8 @@ public abstract class IModelProperty extends IProperty {
     public abstract Set<IProperty> getFields();
 
     @Override
-    public void serialize(Model value, Map<String, PropertyWriter> propertyMap, JsonGenerator gen, SerializerProvider provider) throws Throwable {
-        BindingUtils.pushPopProperties(getFields(),
+    public void serialize(Model<?> value, Map<String, PropertyWriter> propertyMap, JsonGenerator gen, SerializerProvider provider) throws Throwable {
+        BindingUtils.pushPopProperties(provider, getFields(),
                 () -> propertyMap.get(getName()).serializeAsField(value, gen, provider)
         );
 

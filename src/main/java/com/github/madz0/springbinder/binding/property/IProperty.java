@@ -15,7 +15,7 @@ public abstract class IProperty {
         return name;
     }
 
-    public void serialize(Model value, Map<String, PropertyWriter> propertyMap, JsonGenerator gen, SerializerProvider provider)
+    public void serialize(Model<?> value, Map<String, PropertyWriter> propertyMap, JsonGenerator gen, SerializerProvider provider)
             throws Throwable{
         propertyMap.get(getName()).serializeAsField(value, gen, provider);
     }

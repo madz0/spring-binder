@@ -18,8 +18,8 @@ public class RestResultSerializer<T> extends StdSerializer<RestResultFactory<T>>
 
     @Override
     public void serialize(RestResultFactory<T> value, JsonGenerator gen, SerializerProvider provider) throws IOException {
-        BindingUtils.group.set(value.group);
+        BindingUtils.setGroup(provider, value.group);
         beanSerializer.serialize(value, gen, provider);
-        BindingUtils.group.remove();
+        //should remove the group?
     }
 }

@@ -48,7 +48,7 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.util.StringUtils;
 
 @Slf4j
-public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> implements ResolvableDeserializer {
+public class IdModelDeserializer<T extends IdModel<?>> extends StdDeserializer<T> implements ResolvableDeserializer {
 
     private final ObjectMapper objectMapper;
     private final JsonDeserializer deserializer;
@@ -57,7 +57,7 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
     private final EntityManager em;
     private IdClassMapper idClassMapper = null;
 
-    IdModelDeserializer(Class<?> vc, ObjectMapper objectMapper, JsonDeserializer deserializer) {
+    IdModelDeserializer(Class<?> vc, ObjectMapper objectMapper, JsonDeserializer<?> deserializer) {
         super(vc);
         this.objectMapper = objectMapper;
         this.deserializer = deserializer;
@@ -82,15 +82,15 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
     @SuppressWarnings("unchecked")
     public T deserialize(JsonParser p, DeserializationContext context) {
 
-        if (BindingUtils.getGroup(context) == null || BindingUtils.dtoBinding.get()) {
+        if (BindingUtils.getGroup(context) == null || BindingUtils.getDtoBinding(context)) {
             return (T) deserializer.deserialize(p, context);
         }
         JsonNode root = p.getCodec().readTree(p);
         T value;
-        if (BindingUtils.updating.get()) {
+        if (BindingUtils.isModifying(context)) {
             try {
                 Object id = getId(root, getIdClass(_valueClass));
-                EntityGraph<?> graph = BindingUtils.entityGraph.get();
+                EntityGraph<?> graph = BindingUtils.getEntityGraph(context);
                 if (graph != null) {
                     value = (T) em
                         .find(_valueClass, id, Collections.singletonMap("javax.persistence.loadgraph", graph));
@@ -110,27 +110,27 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
                 value = (T) BindingUtils.createModel(_valueClass);
             }
         }
-        return bind(p, root, value);
+        return bind(p, root, value, context);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public T deserialize(JsonParser p, DeserializationContext ctxt, T value) throws IOException {
-        if (BindingUtils.group.get() == null) {
-            return (T) deserializer.deserialize(p, ctxt);
+    public T deserialize(JsonParser p, DeserializationContext context, T value) throws IOException {
+        if (BindingUtils.getGroup(context) == null) {
+            return (T) deserializer.deserialize(p, context);
         }
         JsonNode root = p.getCodec().readTree(p);
-        return bind(p, root, value);
+        return bind(p, root, value, context);
     }
 
     @SuppressWarnings("unchecked")
-    private T bind(JsonParser p, JsonNode root, T value) throws IOException {
+    private T bind(JsonParser p, JsonNode root, T value, DeserializationContext context) {
         if (beanDeserializer == null) {
             throw new IllegalStateException("can not bind into non bean using BaseModelDeserializer");
         }
-        Set<IProperty> properties = BindingUtils.peekProperties();
+        Set<IProperty> properties = BindingUtils.peekProperties(context);
         if (properties == null) {
-            properties = BindingUtils.getPropertiesOfCurrentGroup();
+            properties = BindingUtils.getPropertiesOfCurrentGroup(context);
         }
         for (IProperty property : properties) {
             JsonNode node = root.get(property.getName());
@@ -138,12 +138,16 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
             if (beanProperty == null) {
                 continue;
             }
-            setPropertyValue(p, beanProperty, node, property, value);
+            setPropertyValue(p, beanProperty, node, property, value, context);
         }
         return value;
     }
 
-    private void bindRecursive(T value, JsonNode node, SettableBeanProperty beanProperty, IModelProperty modelProperty)
+    private void bindByOtherEnd(
+        T value, JsonNode node,
+        SettableBeanProperty beanProperty,
+        IModelProperty modelProperty,
+        DeserializationContext context)
         throws IOException, IllegalAccessException, InvocationTargetException {
         //bind recursive
         if (node == null) {
@@ -155,7 +159,7 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
             }
             final Object finalModel = model;
             try {
-                BindingUtils.pushPopProperties(modelProperty.getFields(),
+                BindingUtils.pushPopProperties(context, modelProperty.getFields(),
                     () -> objectMapper.readerForUpdating(finalModel).readValue(node)
                 );
             } catch (Throwable t) {
@@ -168,14 +172,14 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
 
     private boolean matchId(JsonNode node, Object model) {
         if (model instanceof IdModel) {
-            IdModel baseModel = (IdModel) model;
+            IdModel<?> baseModel = (IdModel<?>) model;
             return baseModel.getId() != null && Objects
                 .equals(getId(node, baseModel.getId().getClass()), baseModel.getId());
         }
         return false;
     }
 
-    private Object getId(JsonNode node, Class idClass) {
+    private Object getId(JsonNode node, Class<?> idClass) {
         if (node != null) {
             JsonNode idNode = node.get(IdModelFields.ID);
             if (idNode != null) {
@@ -187,7 +191,7 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
                     try {
                         return objectMapper.readerForUpdating(BindingUtils.createModel(idClass)).readValue(idNode);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        log.error("",e);
                     }
                 }
             }
@@ -203,7 +207,7 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
     }
 
     private void setPropertyValue(JsonParser p, SettableBeanProperty beanProperty, JsonNode node, IProperty property,
-        T value) {
+        T value, DeserializationContext context) {
         try {
             if (property instanceof IModelProperty) {
                 IModelProperty modelProperty = (IModelProperty) property;
@@ -234,11 +238,11 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
                             }
                             //edit existing
                             for (JsonNode collectionNode : src) {
-                                Optional model = dest.stream()
+                                Optional<?> model = dest.stream()
                                     .filter(x -> matchId(collectionNode, x))
                                     .findAny();
                                 final Collection finalDest = dest;
-                                BindingUtils.pushPopProperties(modelProperty.getFields(), () -> {
+                                BindingUtils.pushPopProperties(context, modelProperty.getFields(), () -> {
                                     Object modelObj = null;
                                     if (model.isPresent()) {
                                         modelObj = model.get();
@@ -291,7 +295,7 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
                                     String key = jsonNode.get("key").asText();
                                     Object model = dest.get(key);
                                     final Map finalDest = dest;
-                                    BindingUtils.pushPopProperties(modelProperty.getFields(), () -> {
+                                    BindingUtils.pushPopProperties(context, modelProperty.getFields(), () -> {
                                         if (model != null) {
                                             objectMapper.readerForUpdating(model).readValue(jsonNode.get("value"));
                                         } else {
@@ -308,7 +312,7 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
                                     String key = iterator.next();
                                     Object model = dest.get(key);
                                     final Map finalDest = dest;
-                                    BindingUtils.pushPopProperties(modelProperty.getFields(), () -> {
+                                    BindingUtils.pushPopProperties(context, modelProperty.getFields(), () -> {
                                         if (model != null) {
                                             objectMapper.readerForUpdating(model).readValue(node.get(key));
                                         } else {
@@ -333,10 +337,10 @@ public class IdModelDeserializer<T extends IdModel> extends StdDeserializer<T> i
                         //bind reference
                         getReferenceForNode(beanProperty, node, value);
                     } else {
-                        bindRecursive(value, node, beanProperty, modelProperty);
+                        bindByOtherEnd(value, node, beanProperty, modelProperty, context);
                     }
                 } else {
-                    bindRecursive(value, node, beanProperty, modelProperty);
+                    bindByOtherEnd(value, node, beanProperty, modelProperty, context);
                 }
             } else {
                 if (node != null) {

@@ -1,6 +1,7 @@
 package com.github.madz0.springbinder.binding;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.github.madz0.springbinder.binding.property.IModelProperty;
 import com.github.madz0.springbinder.binding.property.IProperty;
 import com.github.madz0.springbinder.model.Groups;
@@ -18,58 +19,88 @@ import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Root;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import org.springframework.util.comparator.Comparators;
 
 public class BindingUtils {
+
     private static final Map<Class<?>, BeanWrapperImpl> beanWrapperMap = new HashMap<>();
-    //public static final ThreadLocal<Class<? extends Groups.IGroup>> group = ThreadLocal.withInitial(() -> null);
-    //public static final ThreadLocal<Boolean> updating = ThreadLocal.withInitial(() -> false);
-    //private static final ThreadLocal<Stack<Set<IProperty>>> currentProperties = ThreadLocal.withInitial(Stack::new);
-    //public static final ThreadLocal<EntityGraph<?>> entityGraph = ThreadLocal.withInitial(() -> null);
-    //public static final ThreadLocal<Boolean> dtoBinding = ThreadLocal.withInitial(() -> false);
+    private static final Set<IProperty> emptyCollection = Collections.emptySet();
+    private static Map<Class<? extends Groups.IGroup>, Set<IProperty>> groupMap = new HashMap<>();
 
     public interface RunnableWithException {
         void run() throws Throwable;
     }
 
-    public static void pushPopProperties(Set<IProperty> properties, RunnableWithException runnable) throws Throwable {
-        currentProperties.get().push(properties);
+    public static void pushPopProperties(
+        DeserializationContext context,
+        Set<IProperty> properties,
+        RunnableWithException runnable) throws Throwable {
+        Deque<Set<IProperty>> props = getPropsDeque(context);
+        props.push(properties);
         try {
             runnable.run();
         } finally {
-            currentProperties.get().pop();
+            props.pop();
         }
-
     }
 
-    public static Set<IProperty> peekProperties() {
-        if (currentProperties.get().size() > 0) {
-            return currentProperties.get().peek();
+    public static void pushPopProperties(
+        SerializerProvider provider,
+        Set<IProperty> properties,
+        RunnableWithException runnable) throws Throwable {
+        Deque<Set<IProperty>> props = getPropsDeque(provider);
+        props.push(properties);
+        try {
+            runnable.run();
+        } finally {
+            props.pop();
         }
-        return null;
-
     }
 
+    protected static Deque<Set<IProperty>> getPropsDeque(DeserializationContext context) {
+        return (Deque<Set<IProperty>>)context.getAttribute("props");
+    }
+
+    protected static Deque<Set<IProperty>> getPropsDeque(SerializerProvider provider) {
+        return (Deque<Set<IProperty>>)provider.getAttribute("props");
+    }
+
+    public static Set<IProperty> peekProperties(DeserializationContext context) {
+        Deque<Set<IProperty>> props = getPropsDeque(context);
+        if (props.size() > 0) {
+            return props.peek();
+        }
+        return emptyCollection;
+    }
+
+    public static Set<IProperty> peekProperties(SerializerProvider provider) {
+        Deque<Set<IProperty>> props = getPropsDeque(provider);
+        if (props.size() > 0) {
+            return props.peek();
+        }
+        return emptyCollection;
+    }
 
     private BindingUtils() {
     }
 
     @SneakyThrows
-    public static Collection createCollection(Class collectionType) {
+    public static <T> Collection<T> createCollection(Class<T> collectionType) {
         if (!collectionType.isInterface()) {
-            return (Collection) collectionType.newInstance();
+            return (Collection<T>) collectionType.getConstructor().newInstance();
         } else if (List.class.equals(collectionType)) {
-            return new ArrayList();
+            return new ArrayList<>();
         } else if (SortedSet.class.equals(collectionType)) {
-            return new TreeSet();
+            return new TreeSet<>(Comparators.comparable());
         } else {
-            return new LinkedHashSet();
+            return new LinkedHashSet<>();
         }
     }
 
     @SneakyThrows
     public static Map createMap(Class collectionType) {
         if (!collectionType.isInterface()) {
-            return (Map) collectionType.newInstance();
+            return (Map) collectionType.getConstructor().newInstance();
         } else if (SortedMap.class.equals(collectionType)) {
             return new TreeMap();
         } else {
@@ -85,8 +116,6 @@ public class BindingUtils {
         }
     }
 
-    private static Map<Class<? extends Groups.IGroup>, Set<IProperty>> groupMap = new HashMap<>();
-
     @SneakyThrows
     @SuppressWarnings("unchecked")
     public static synchronized Set<IProperty> getPropertiesFromGroup(Class<? extends Groups.IGroup> group) {
@@ -99,8 +128,12 @@ public class BindingUtils {
         return groupMap.get(group);
     }
 
-    public static Set<IProperty> getPropertiesOfCurrentGroup() {
-        return getPropertiesFromGroup(group.get());
+    public static Set<IProperty> getPropertiesOfCurrentGroup(DeserializationContext context) {
+        return getPropertiesFromGroup(getGroup(context));
+    }
+
+    public static Set<IProperty> getPropertiesOfCurrentGroup(SerializerProvider provider) {
+        return getPropertiesFromGroup(getGroup(provider));
     }
 
     public static BeanWrapperImpl getBeanWrapper(Class<?> clazz) {
@@ -191,5 +224,13 @@ public class BindingUtils {
 
     public static Boolean getDtoBinding(DeserializationContext context) {
         return (Boolean) context.getAttribute("dtoBinding");
+    }
+
+    public static void setGroup(SerializerProvider provider, Class<? extends Groups.IGroup> group) {
+        provider.setAttribute("group", group);
+    }
+
+    public static Class<? extends Groups.IGroup> getGroup(SerializerProvider provider) {
+        return (Class<? extends Groups.IGroup>) provider.getAttribute("group");
     }
 }

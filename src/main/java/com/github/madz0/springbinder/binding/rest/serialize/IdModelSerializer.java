@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.IteratorUtils;
 
 @Slf4j
-public class IdModelSerializer<T extends Model> extends StdSerializer<T> {
+public class IdModelSerializer<T extends Model<?>> extends StdSerializer<T> {
 
     private final Map<String, PropertyWriter> propertyMap;
     private final BeanSerializer serializer;
@@ -36,7 +36,7 @@ public class IdModelSerializer<T extends Model> extends StdSerializer<T> {
     @Override
     @SuppressWarnings("unchecked")
     public void serialize(T value, JsonGenerator gen, SerializerProvider provider) throws IOException {
-        if (BindingUtils.group.get() == null) {
+        if (BindingUtils.getGroup(provider) == null) {
             serializer.serialize(value, gen, provider);
             return;
         }
@@ -46,9 +46,9 @@ public class IdModelSerializer<T extends Model> extends StdSerializer<T> {
     }
 
     private void serializeFields(T value, JsonGenerator gen, SerializerProvider provider) {
-        Set<IProperty> properties = BindingUtils.peekProperties();
+        Set<IProperty> properties = BindingUtils.peekProperties(provider);
         if (properties == null) {
-            properties = BindingUtils.getPropertiesOfCurrentGroup();
+            properties = BindingUtils.getPropertiesOfCurrentGroup(provider);
         }
 
         for (IProperty property : properties) {
@@ -67,7 +67,7 @@ public class IdModelSerializer<T extends Model> extends StdSerializer<T> {
     public void serializeWithType(T value, JsonGenerator gen, SerializerProvider provider, TypeSerializer typeSer)
         throws IOException {
         // note: method to call depends on whether this type is serialized as JSON scalar, object or Array!
-        if (BindingUtils.group.get() == null) {
+        if (BindingUtils.getGroup(provider) == null) {
             serializer.serializeWithType(value, gen, provider, typeSer);
             return;
         }
