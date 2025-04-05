@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ser.BeanSerializer;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
 import com.github.madz0.springbinder.model.IdModel;
+import java.util.HashMap;
 import org.springframework.context.ApplicationContext;
 
 public class ContextAwareObjectMapper extends ObjectMapper {
@@ -50,6 +51,8 @@ public class ContextAwareObjectMapper extends ObjectMapper {
         @Override
         public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc,
             JsonSerializer<?> serializer) {
+            config.withAttributes(new HashMap<>());
+            //setConfig(config);
             if (IdModel.class.isAssignableFrom(beanDesc.getBeanClass()) &&
                 serializer instanceof BeanSerializer) {
                 return new IdModelSerializer(beanDesc.getBeanClass(), (BeanSerializer) serializer);
@@ -62,15 +65,16 @@ public class ContextAwareObjectMapper extends ObjectMapper {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public static class ModelBeanDeserializerModifier extends BeanDeserializerModifier {
 
         @Override
         public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config, BeanDescription beanDesc,
             JsonDeserializer<?> deserializer) {
             ObjectMapper objectMapper = ContextAwareObjectMapper.getBean(ObjectMapper.class);
+            config.withAttributes(new HashMap<>());
+            objectMapper.setConfig(config);
             if (IdModel.class.isAssignableFrom(beanDesc.getBeanClass())) {
-                return new IdModelDeserializer(beanDesc.getBeanClass(), objectMapper, deserializer);
+                return new IdModelDeserializer<>(beanDesc.getBeanClass(), objectMapper, deserializer);
             }
             return super.modifyDeserializer(config, beanDesc, deserializer);
         }

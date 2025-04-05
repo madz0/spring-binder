@@ -85,6 +85,7 @@ public class JsonBindingTest extends BaseTest {
             "  }}]\n" +
             "}]}";
         Company root;
+        mapper.getDeserializationContext().getC
         BindingUtils.setGroup(mapper.getDeserializationContext(), ICreate1.class);
         root = mapper.readValue(data, Company.class);
         assertEquals("My company", root.getName());
